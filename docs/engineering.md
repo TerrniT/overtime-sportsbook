@@ -17,7 +17,9 @@ Rules:
 - A bet is recorded and the stake debited in one database transaction, under `SELECT … FOR UPDATE`
   on the player row.
 - Idempotency: `bets UNIQUE (player_id, idempotency_key)`. A replayed request returns the original
-  bet and balance with `replayed: true`, with no second debit.
+  bet and balance with `replayed: true`, with no second debit. The replay lookup runs **before** the
+  price, stake-limit and balance checks: a client that lost the response retries with the old price
+  and must get its bet back, not a 409 that invites a second bet.
 - Potential payout = `stake_minor * price_milli / 1000`, integer division, floored. Never rounded up.
   The remainder is the house's; it is not a rounding gift to the player.
 - Stake limits: minimum `10_000` minor (100 ₽), maximum `500_000` minor (5 000 ₽), balance
