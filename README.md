@@ -19,7 +19,7 @@ docker compose up --build
 
 ```bash
 docker compose up -d db
-cd backend && DATABASE_URL='postgres://sportsbook:sportsbook@127.0.0.1:5433/sportsbook?sslmode=disable' go run ./cmd/server
+cd backend && DATABASE_URL='postgres://sportsbook:sportsbook@127.0.0.1:5437/sportsbook?sslmode=disable' go run ./cmd/server
 cd frontend && npm install && npm run dev   # Vite проксирует /api на :8080
 ```
 

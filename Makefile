@@ -22,7 +22,7 @@ test:
 ## Integration tests: starts the database and points the tests at it.
 test-db:
 	$(COMPOSE) up -d db
-	cd backend && TEST_DATABASE_URL='postgres://sportsbook:sportsbook@127.0.0.1:5433/sportsbook?sslmode=disable' go test ./... -count=1
+	cd backend && TEST_DATABASE_URL='postgres://sportsbook:sportsbook@127.0.0.1:5437/sportsbook?sslmode=disable' go test ./... -count=1
 
 test-all: test-db
 	cd frontend && npm run test --if-present

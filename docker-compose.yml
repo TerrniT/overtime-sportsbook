@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: sportsbook
       POSTGRES_PASSWORD: sportsbook
     ports:
-      - "5433:5432" # host port for local `go test`; the API uses the service network
+      - "5437:5432" # host port for local `go test`; the API uses the service network
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
