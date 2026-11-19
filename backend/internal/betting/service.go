@@ -76,3 +76,16 @@ func (s *Service) History(ctx context.Context, limit int) ([]store.Bet, error) {
 	// TODO: implement (betting agent).
 	return nil, errors.New("not implemented")
 }
+
+// BalanceEvent is published after a bet changes the player's balance.
+type BalanceEvent struct {
+	BalanceMinor int64  `json:"balanceMinor"`
+	Currency     string `json:"currency"`
+}
+
+// SubscribeBalance returns a channel of balance updates and a cancel function.
+func (s *Service) SubscribeBalance() (<-chan BalanceEvent, func()) {
+	// TODO: implement (betting agent).
+	ch := make(chan BalanceEvent, 1)
+	return ch, func() {}
+}

@@ -52,7 +52,9 @@ The intra-source price is generated from a mean-reverting fair probability per o
 per-source noise, so the consensus drifts by a few hundredths between ticks without jumping
 wildly. Every tick recomputes both sources from scratch; nothing is random per request.
 
-Refresh cadence: one tick every 3000 ms. `seq` increments on every tick.
+Refresh cadence: one tick every 3000 ms. `NewEngine` computes the initial snapshot with `seq = 0`;
+every `Update` returns the next sequence (`1, 2, …`). A subscriber channel is buffered; a slow
+subscriber must never block the ticker (drop the oldest pending snapshot instead).
 
 ## 3. Database
 
@@ -286,6 +288,10 @@ type PlaceResult struct { Bet store.Bet; BalanceMinor int64; Replayed bool }
 func (s *Service) Place(ctx context.Context, in PlaceInput) (PlaceResult, error)
 func (s *Service) Session(ctx context.Context) (store.Player, error)
 func (s *Service) History(ctx context.Context, limit int) ([]store.Bet, error)
+// SubscribeBalance fans out the player's balance after every accepted bet
+// (including idempotent replays). Slow subscribers are dropped, never blocked.
+type BalanceEvent struct { BalanceMinor int64; Currency string }
+func (s *Service) SubscribeBalance() (<-chan BalanceEvent, func())
 var ErrMarketNotFound, ErrOddsChanged error
 type OddsChangedError struct { Expected, Current int64 }
 var ErrInsufficientFunds, ErrStakeOutOfRange, ErrInvalidRequest error
