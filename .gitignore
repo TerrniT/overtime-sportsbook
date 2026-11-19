@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+frontend/dist/
+
+# env
+.env
+.env.local
+*.local
+
+# go
+backend/bin/
+backend/coverage.out
+backend/*.test
+
+# tooling
+.DS_Store
+*.log
+tmp/
+
+# agent tooling (impeccable skills are local, its artifacts PRODUCT.md/DESIGN.md are tracked)
+.opencode/
+.impeccable/
+
+# impeccable ephemeral output
+# (shared artifacts stay tracked: config.json, design.json, surfaces/*.md)
+**/.impeccable/config.local.json
+**/.impeccable/hook.cache.json
+**/.impeccable/hook.pending.json
+**/.impeccable/*.png
+**/.impeccable/review/
+**/.impeccable/questions/
+**/.impeccable/live/server.json
+**/.impeccable/live/sessions/
+**/.impeccable/live/previews/
+**/.impeccable/live/annotations/
+**/.impeccable/live/cache/
+**/.impeccable/live/manual-edit-*.json*
+**/.impeccable/live/manual-edit-events.jsonl
+**/.impeccable/live/manual-edit-evidence/
+**/.impeccable/live/pending-manual-edits.json
+**/.impeccable/live/deferred-svelte-component-accepts.json
+**/.impeccable/live/*.png
+
+# docker
+pgdata/
