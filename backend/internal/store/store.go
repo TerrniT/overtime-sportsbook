@@ -126,6 +126,24 @@ func (s *Store) Bets(ctx context.Context, playerID string, limit int) ([]Bet, er
 	return bets, nil
 }
 
+// FindBet looks up an accepted bet by (player, idempotency key). The second
+// result is false when no such bet exists. It runs before price, stake and
+// balance checks so that a retry of an accepted bet always replays, even if
+// the line or the balance has moved since the first attempt.
+func (s *Store) FindBet(ctx context.Context, playerID, key string) (Bet, bool, error) {
+	bet, err := scanBet(s.pool.QueryRow(ctx, `
+		select `+betColumns+`
+		from bets
+		where player_id = $1 and idempotency_key = $2`, playerID, key))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Bet{}, false, nil
+	}
+	if err != nil {
+		return Bet{}, false, err
+	}
+	return bet, true, nil
+}
+
 // PlaceBet records the bet, debits the stake and writes a ledger entry in one
 // transaction. It returns the stored bet, the new balance, and whether the
 // request was an idempotent replay.

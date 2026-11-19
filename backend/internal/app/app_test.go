@@ -736,6 +736,59 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestPlaceBetReplayAfterPriceChange(t *testing.T) {
+	env := newTestEnv(t)
+	match, outcome := pickHome(t, env)
+	body := betBody(match, outcome, 50_000, testsupport.UUID(t))
+
+	status, firstBody, _ := request(t, env.app, http.MethodPost, "/api/bets", body)
+	if status != http.StatusCreated {
+		t.Fatalf("first POST status = %d, want 201\nbody: %s", status, firstBody)
+	}
+	first := decode[betResponse](t, firstBody)
+
+	// Move the line until this outcome's price differs from the accepted one.
+	changed := false
+	for i := 0; i < 100; i++ {
+		snap := env.engine.Update()
+		for _, current := range snap.Matches[0].Outcomes {
+			if current.Key == outcome.Key && current.PriceMilli != outcome.PriceMilli {
+				changed = true
+			}
+		}
+		if changed {
+			break
+		}
+	}
+	if !changed {
+		t.Fatal("engine never moved the price; cannot test replay after a price change")
+	}
+
+	// A retry after a lost response still carries the old price. It must
+	// replay the original bet, not fail with 409 and tempt the client to place
+	// a second bet at the new price.
+	status, secondBody, _ := request(t, env.app, http.MethodPost, "/api/bets", body)
+	if status != http.StatusOK {
+		t.Fatalf("replay after price change status = %d, want 200\nbody: %s", status, secondBody)
+	}
+	second := decode[betResponse](t, secondBody)
+	if !second.Replayed {
+		t.Fatal("replay after price change reported replayed=false")
+	}
+	if second.Bet.ID != first.Bet.ID {
+		t.Fatalf("replay bet id = %q, want original %q", second.Bet.ID, first.Bet.ID)
+	}
+	if second.BalanceMinor != 2_450_000 {
+		t.Fatalf("replay balance = %d, want 2450000", second.BalanceMinor)
+	}
+	if got := countQuery(t, env.pool, `select count(*) from bets`); got != 1 {
+		t.Fatalf("bets = %d after replay, want 1", got)
+	}
+	if got := countQuery(t, env.pool, `select count(*) from ledger_entries where kind = 'bet_stake'`); got != 1 {
+		t.Fatalf("bet_stake ledger rows = %d after replay, want 1", got)
+	}
+}
+
 func TestBetAfterInsufficientFundsStillWorks(t *testing.T) {
 	env := newTestEnv(t)
 	testsupport.SetBalance(t, env.pool, 40_000)

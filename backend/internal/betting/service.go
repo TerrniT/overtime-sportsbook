@@ -89,6 +89,21 @@ func (s *Service) Place(ctx context.Context, in PlaceInput) (PlaceResult, error)
 		return PlaceResult{}, ErrInvalidRequest
 	}
 
+	// Idempotency comes before price, limits and market checks. A client that
+	// lost the response retries with the same key and the price it agreed to;
+	// if the tick moved in between, the original bet must still replay instead
+	// of returning 409 and inviting a second bet at the new price.
+	if existing, found, err := s.deps.Store.FindBet(ctx, s.deps.PlayerID, key); err != nil {
+		return PlaceResult{}, err
+	} else if found {
+		player, err := s.deps.Store.Player(ctx, s.deps.PlayerID)
+		if err != nil {
+			return PlaceResult{}, err
+		}
+		s.publish(BalanceEvent{BalanceMinor: player.BalanceMinor, Currency: player.Currency})
+		return PlaceResult{Bet: existing, BalanceMinor: player.BalanceMinor, Replayed: true}, nil
+	}
+
 	snapshot := s.deps.Engine.Snapshot()
 	match, ok := findMatch(snapshot, in.MatchID)
 	if !ok {
