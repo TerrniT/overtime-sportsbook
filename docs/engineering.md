@@ -47,8 +47,9 @@ For each match and outcome:
    then clamp to `[1050, 20000]`.
 
 Flooring prices never reduces the achieved margin: a smaller price means a larger implied
-probability, so the implied total stays at or above `1 + margin`. The achieved (displayed) margin is
-`Σ (1000/priceMilli) - 1` and is exposed as `marginBps` per snapshot (the target is `500`).
+probability, so the implied total stays at or above `1 + margin`. The achieved margin is
+`Σ (1000/priceMilli) - 1` and is exposed as `marginBps` per snapshot (the target is `500`); the
+customer UI intentionally does not surface it.
 
 The intra-source price is generated from a mean-reverting fair probability per outcome with small
 per-source noise, so the consensus drifts by a few hundredths between ticks without jumping
