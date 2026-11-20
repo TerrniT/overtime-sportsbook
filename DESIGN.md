@@ -281,8 +281,9 @@ small trend arrow in the top-right. Unselected is Control Surface with a hairlin
 surface and the border. Selected is full sodium with ink text, an orange ring/glow and no ambiguity.
 A price change starts one 160ms opacity flash through a Vue `<Transition>`, while a NumberTicker
 rolls the value. A short green/red wash at the bottom of the card marks the direction: green for a
-higher price, red for a lower one. Stale line dims every button to 40% and removes the pointer; the
-bet slip explains why in text.
+higher price, red for a lower one. On the selected sodium fill the direction also appears as a dark
+chip around the arrow and a 3px bottom edge, so it never disappears into orange. Stale line dims
+every button to 40% and removes the pointer; the bet slip explains why in text.
 
 ### Source Breakdown (signature)
 An expandable hairline table under a fixture: outcome, PulseBet price, SharpLine price, and our

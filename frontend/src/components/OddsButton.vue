@@ -103,6 +103,14 @@ const ariaLabel = computed(
       :key="`trend-${trendKey}`"
       aria-hidden="true"
       class="odds-change-glow"
+      :class="[trendTone, selected ? 'is-selected' : '']"
+    />
+
+    <span
+      v-if="trendVisible"
+      :key="`edge-${trendKey}`"
+      aria-hidden="true"
+      class="odds-trend-edge"
       :class="trendTone"
     />
 
@@ -118,7 +126,15 @@ const ariaLabel = computed(
         v-if="outcome.trend !== 'flat'"
         :title="trendLabel"
         class="inline-flex items-center"
-        :class="selected ? 'text-ink/70' : outcome.trend === 'up' ? 'text-[#a9cf98]' : 'text-[#f26d6d]'"
+        :class="
+          selected
+            ? outcome.trend === 'up'
+              ? 'rounded-[3px] bg-[#140a06]/85 px-1 py-0.5 text-[#a9cf98]'
+              : 'rounded-[3px] bg-[#140a06]/85 px-1 py-0.5 text-[#f26d6d]'
+            : outcome.trend === 'up'
+              ? 'text-[#a9cf98]'
+              : 'text-[#f26d6d]'
+        "
       >
         <ArrowUpRight v-if="outcome.trend === 'up'" class="size-3" aria-hidden="true" />
         <ArrowDownRight v-else class="size-3" aria-hidden="true" />

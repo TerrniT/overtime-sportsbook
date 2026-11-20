@@ -172,11 +172,38 @@
 }
 
 .odds-change-glow.up {
+  --trend-color: 169, 207, 152;
   background: linear-gradient(to top, rgba(169, 207, 152, 0.34), rgba(169, 207, 152, 0));
 }
 
 .odds-change-glow.down {
+  --trend-color: 242, 109, 109;
   background: linear-gradient(to top, rgba(242, 109, 109, 0.32), rgba(242, 109, 109, 0));
+}
+
+/* On the orange selected fill the wash is hard to read; add a solid edge that
+   survives the background, plus a denser bottom gradient. */
+.odds-change-glow.is-selected {
+  background: linear-gradient(to top, rgba(var(--trend-color), 0.52), transparent 82%);
+}
+
+.odds-trend-edge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 3px;
+  pointer-events: none;
+  box-shadow: 0 -1px 0 rgba(10, 10, 11, 0.35);
+}
+
+.odds-trend-edge.up {
+  background: #5fd18a;
+}
+
+.odds-trend-edge.down {
+  background: #ff5c5c;
 }
 
 @keyframes odds-change-glow {
