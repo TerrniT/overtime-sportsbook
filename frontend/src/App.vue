@@ -60,8 +60,8 @@ onBeforeUnmount(stop)
         <footer
           class="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pt-4 pb-2 text-[10px] leading-relaxed text-faint"
         >
-          <p>Все матчи, коэффициенты и баланс симулированы. Реальных ставок и выплат нет.</p>
-          <p class="uppercase tracking-[0.14em]">Овертайм · демо-линия</p>
+          <p>Матчи и коэффициенты симулированы. Реальных ставок и выплат нет.</p>
+          <p class="uppercase tracking-[0.14em]">Овертайм · демо</p>
         </footer>
       </main>
     </div>

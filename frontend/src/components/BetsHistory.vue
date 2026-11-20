@@ -66,7 +66,7 @@ function outcomeLabel(bet: Bet): string {
         v-else-if="showEmpty"
         compact
         title="Ставок пока нет"
-        description="Принятая ставка появится здесь: сумма, коэффициент и потенциальный выигрыш."
+        description="Здесь появятся ваши ставки."
       />
 
       <div v-else-if="error && bets.length === 0" class="px-4 py-6 text-center">

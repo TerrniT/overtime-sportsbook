@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatKickoffDay,
-  formatMarginBps,
   formatMoney,
   formatOdds,
   formatStakeInput,
@@ -34,9 +33,7 @@ describe('money and odds formatting', () => {
     expect(formatStakeInput(50_000)).toBe('500')
   })
 
-  it('formats margin and Russian plurals for the masthead', () => {
-    expect(formatMarginBps(500)).toBe('5,0%')
-    expect(formatMarginBps(505)).toBe('5,1%')
+  it('formats Russian plurals for the masthead', () => {
     expect(pluralRu(8, ['матч', 'матча', 'матчей'])).toBe('матчей')
     expect(pluralRu(2, ['матч', 'матча', 'матчей'])).toBe('матча')
     expect(pluralRu(21, ['матч', 'матча', 'матчей'])).toBe('матч')

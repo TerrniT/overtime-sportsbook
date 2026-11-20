@@ -143,7 +143,7 @@ under `prefers-reduced-motion`.
 - Near-black paper, one sodium accent, warm off-white ink.
 - Condensed uppercase display against a humanist Russian text face.
 - Hairline rules, flat tonal surfaces, sharp 8–11px corners.
-- Oversized tabular odds; every price can disclose its two sources and house margin.
+- Oversized tabular odds; every price can disclose its two sources and the final price.
 - Calm default, precise flash on change; honest demo labels.
 
 ## Colors
@@ -205,7 +205,7 @@ do-everything grotesque.
 A 12-column desktop grid inside a 1440px container, with 32px outer padding at `lg` and 16px at
 mobile. The line list takes columns 1–8; the bet slip takes columns 9–12 at a 400px maximum and is
 sticky at `top: 84px`. The header is a 64px sticky band (56px on mobile). The page masthead sits
-above the grid; its title is left-aligned and its date/margin note is a right-hand programme block.
+above the grid; its title is left-aligned and its date/update note is a right-hand programme block.
 
 Match rows are a three-column grid on desktop: 64px kickoff, a flexible fixture column, and a 330px
 odds block (288px between 1024 and 1279px). Rows are separated by hairlines inside one 10px panel;
@@ -284,9 +284,9 @@ rolls the value. Stale line dims every button to 40% and removes the pointer; th
 why in text.
 
 ### Source Breakdown (signature)
-An expandable hairline table under a fixture: outcome, PulseBet price, SharpLine price, and the house
-price. Header line carries `де-виг 40/60 · маржа 5,0%`; a tooltip explains the de-vig/blend/margin
-pipeline. Source prices are muted; the house price is ink. The disclosure animates in with a 200ms
+An expandable hairline table under a fixture: outcome, PulseBet price, SharpLine price, and our
+price. The header reads «Цены источников»; no de-vig, margin or commission language appears on the
+customer surface. Source prices are muted; our price is ink. The disclosure animates in with a 200ms
 fade/translate and remains legible at 320px.
 
 ### Bet Slip (signature)
@@ -305,10 +305,10 @@ success, red for error, with a 1px border and the floating shadow.
 
 ### Do:
 - **Do** keep orange for selection, primary action, live state and price change. If a region is orange, it is a decision.
-- **Do** show both source prices and the house margin in the disclosure; the mechanism is the product.
+- **Do** show both source prices and the final price in the disclosure; keep margin out of the customer surface.
 - **Do** use 1px hairlines and one-step tonal surfaces before reaching for a shadow.
 - **Do** keep odds and money tabular, comma-decimal, and floored from integer kopecks.
-- **Do** label the simulation plainly (header, footer, empty slip) without turning the page into a disclaimer.
+- **Do** label the simulation plainly (balance chip, slip badge, footer) without turning the page into a disclaimer.
 - **Do** keep the 8–12px radius range, 9–10px uppercase labels and stacked team names that can wrap on narrow desktop.
 
 ### Don't:

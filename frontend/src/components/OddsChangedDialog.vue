@@ -108,7 +108,7 @@ function onOpenChange(value: boolean): void {
       </DialogFooter>
 
       <p v-if="stale" class="border-t border-line px-5 py-2.5 text-[10px] leading-relaxed text-[#e8c0a8]" role="status">
-        Линия устарела. Подтверждение приостановлено до свежего тика.
+        Линия устарела. Подтверждение недоступно, пока линия не обновится.
       </p>
     </DialogContent>
   </Dialog>

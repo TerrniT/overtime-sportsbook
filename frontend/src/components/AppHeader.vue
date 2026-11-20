@@ -26,11 +26,6 @@ import ConnectionStatus from './ConnectionStatus.vue'
         </span>
       </a>
 
-      <span class="mx-1 hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
-      <span class="hidden text-[9px] uppercase tracking-[0.2em] text-faint md:block">
-        демо-линия · симуляция
-      </span>
-
       <div class="ml-auto flex min-w-0 items-center gap-2 sm:gap-4">
         <ConnectionStatus />
         <span class="hidden h-8 w-px bg-line sm:block" aria-hidden="true" />

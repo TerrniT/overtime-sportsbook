@@ -75,7 +75,7 @@ onBeforeUnmount(() => {
           Купон
         </DialogTitle>
         <DialogDescription class="sr-only">
-          Купон демо-ставки. Выберите сумму и подтвердите ставку.
+          Выберите сумму и подтвердите ставку.
         </DialogDescription>
         <DialogClose as-child>
           <Button

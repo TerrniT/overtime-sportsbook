@@ -1,22 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Info } from 'lucide-vue-next'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useLine } from '@/composables/useLine'
-import { formatDateLong, formatInteger, formatMarginBps, formatTime, pluralRu } from '@/lib/format'
+import { formatDateLong, formatInteger, formatTime, pluralRu } from '@/lib/format'
 
 const { snapshot, loading } = useLine()
 
 const matchCount = computed(() => snapshot.value?.matches.length ?? 0)
 const outcomeCount = computed(
   () => snapshot.value?.matches.reduce((sum, match) => sum + match.outcomes.length, 0) ?? 0,
-)
-const margin = computed(() => formatMarginBps(snapshot.value?.marginBps ?? 500))
-
-const marginExplanation = computed(
-  () =>
-    `Две линии (PulseBet ≈ 3% и SharpLine ≈ 6% маржи) де-вигуются, смешиваются 40/60 и получают маржу дома ${margin.value}. Цена округляется вниз до сотых.`,
 )
 </script>
 
@@ -29,11 +21,10 @@ const marginExplanation = computed(
           tabindex="-1"
           class="font-display text-[46px] font-medium uppercase leading-[0.9] tracking-[0.01em] text-foreground sm:text-[58px] xl:text-[66px]"
         >
-          Линия <span class="text-sodium">дня</span>
+          Линия
         </h1>
-        <p class="mt-3 max-w-[54ch] text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">
-          Живая демо-линия футбольных матчей. Цены пересчитываются каждые три секунды, источники
-          открыты.
+        <p class="mt-3 text-[12px] leading-relaxed text-muted-foreground sm:text-[13px]">
+          Футбол · 1X2
         </p>
       </div>
 
@@ -52,24 +43,13 @@ const marginExplanation = computed(
         </div>
 
         <div class="w-full border-t border-line pt-2.5 text-left min-[360px]:w-auto min-[360px]:border-t-0 min-[360px]:border-l min-[360px]:pt-0 min-[360px]:pl-4 min-[360px]:text-right sm:pl-6">
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-[2px] text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:text-sodium focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-sodium"
-              >
-                маржа дома {{ margin }}
-                <Info class="size-3 text-faint" aria-hidden="true" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" :side-offset="8" class="max-w-[280px] leading-relaxed">
-              {{ marginExplanation }}
-            </TooltipContent>
-          </Tooltip>
-          <p v-if="snapshot" class="mt-1.5 text-[11px] tabular text-faint">
-            тик #{{ snapshot.seq }} · {{ formatTime(snapshot.updatedAt) }}
+          <p class="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Обновлено
           </p>
-          <Skeleton v-else-if="loading" class="mt-1.5 h-3 w-20 rounded-[2px]" />
+          <p v-if="snapshot" class="mt-1.5 text-[11px] tabular text-faint">
+            {{ formatTime(snapshot.updatedAt) }}
+          </p>
+          <Skeleton v-else-if="loading" class="mt-1.5 h-3 w-12 rounded-[2px]" />
         </div>
       </div>
     </div>

@@ -5,18 +5,17 @@ import type { Match } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { useBetSlip } from '@/composables/useBetSlip'
 import { useLine } from '@/composables/useLine'
-import { formatKickoff, formatKickoffDay, formatKickoffFull, formatMarginBps } from '@/lib/format'
+import { formatKickoff, formatKickoffDay, formatKickoffFull } from '@/lib/format'
 import OddsButton from './OddsButton.vue'
 import SourceBreakdown from './SourceBreakdown.vue'
 
 const props = defineProps<{ match: Match }>()
 
 const { active, inFlight, hasUnresolvedAttempt, select } = useBetSlip()
-const { snapshot, stale } = useLine()
+const { stale } = useLine()
 
 const expanded = ref(false)
 const sourcesId = computed(() => `sources-${props.match.id}`)
-const margin = computed(() => formatMarginBps(snapshot.value?.marginBps ?? 500))
 const matchLabel = computed(() => `${props.match.homeTeam} — ${props.match.awayTeam}`)
 const rowSelected = computed(() => active.value?.match.id === props.match.id)
 
@@ -68,9 +67,7 @@ const oddsDisabled = computed(() => stale.value || inFlight.value || hasUnresolv
         :aria-controls="sourcesId"
         @click="expanded = !expanded"
       >
-        <span>Источники цены</span>
-        <span class="text-[#5f5b54]">·</span>
-        <span>маржа {{ margin }}</span>
+        <span>Цены источников</span>
         <ChevronDown
           class="size-3 transition-transform duration-200"
           :class="expanded ? 'rotate-180' : ''"
@@ -93,7 +90,7 @@ const oddsDisabled = computed(() => stale.value || inFlight.value || hasUnresolv
 
     <Transition name="sources">
       <div v-if="expanded" :id="sourcesId" class="mt-3 lg:col-span-3">
-        <SourceBreakdown :match="match" :margin-bps="snapshot?.marginBps ?? 500" />
+        <SourceBreakdown :match="match" />
       </div>
     </Transition>
   </article>

@@ -145,15 +145,6 @@ export function formatTime(iso: string): string {
   return date ? timeFormat.format(date) : '—'
 }
 
-/** 500 → «5,0%». */
-export function formatMarginBps(bps: number): string {
-  const percent = (Number.isFinite(bps) ? bps : 0) / 100
-  return `${percent.toLocaleString('ru-RU', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`
-}
-
 export function formatInteger(value: number): string {
   return integerFormat.format(Number.isFinite(value) ? Math.trunc(value) : 0)
 }

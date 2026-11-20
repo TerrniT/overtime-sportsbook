@@ -75,13 +75,8 @@ const errorIsFunds = computed(() => submitError.value?.kind === 'insufficient_fu
     <template v-if="!active">
       <EmptyState
         title="Купон пуст"
-        description="Нажмите на коэффициент в линии — исход, цена и сумма появятся здесь."
+        description="Выберите коэффициент, чтобы сделать ставку."
       />
-      <p
-        class="border-t border-line px-4 py-3 text-center text-[9px] uppercase leading-relaxed tracking-[0.12em] text-faint"
-      >
-        1X2 · одиночные ставки · демо-баланс
-      </p>
     </template>
 
     <form v-else novalidate @submit.prevent="submit">
@@ -202,7 +197,7 @@ const errorIsFunds = computed(() => submitError.value?.kind === 'insufficient_fu
           {{ submitBlockedReason }}
         </p>
         <p v-else class="mt-2 text-center text-[10px] leading-relaxed text-faint">
-          Цена фиксируется в момент ставки · демо-режим
+          Цена фиксируется при отправке
         </p>
       </div>
     </form>

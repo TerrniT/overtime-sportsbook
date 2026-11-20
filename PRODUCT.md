@@ -27,9 +27,9 @@ charged twice.
 
 ## Positioning
 
-The line shows its work. Every price exposes the two source prices it was derived from and the
-house margin, so the product is a demonstrator of a priced market rather than an opaque casino.
-No registration, no settlement, no admin: the line and the bet are the whole product.
+The line shows its work. Every price exposes the two source prices it was derived from, while the
+house margin stays in the back office. It is a demonstrator of a priced market rather than an opaque
+casino. No registration, no settlement, no admin: the line and the bet are the whole product.
 
 ## Operating Context
 
@@ -42,7 +42,8 @@ explicitly excludes settling them after the match.
 
 - 1X2 (П1 / Х / П2) on 6–8 simulated football matches across several leagues.
 - Two independent simulated price sources per outcome; the house line is their de-vigged,
-  weighted consensus plus a fixed margin. Sources drift on a mean-reverting random walk.
+  weighted consensus plus a fixed margin. Sources drift on a mean-reverting random walk. The
+  customer surface shows the two source prices and the final price, not the margin or de-vig math.
 - Real-time delivery over Server-Sent Events (SSE), one full line snapshot per tick.
 - One seeded demo player with a balance in integer kopecks. Stake limits and a 1.01 minimum price.
 - A bet is accepted at the price the client saw or rejected with the new price (409), never
@@ -66,8 +67,8 @@ money, no real user data, and no claim of betting accuracy. The README must say 
 
 ## Product Principles
 
-1. **The price is the product.** Show the consensus, the sources and the margin; never fake a
-   price the backend would not honor.
+1. **The price is the product.** Show the sources and the final price; keep the house margin in the
+   back office. Never fake a price the backend would not honor.
 2. **Money fails closed.** If the balance, the price or the connection is uncertain, refuse the
    bet and explain why in the user's language.
 3. **One screen, one decision.** Scan the line, pick an outcome, stake an amount. Everything else

@@ -22,7 +22,7 @@ const emit = defineEmits<{ retry: [] }>()
       {{ title ?? 'Связь с линией потеряна' }}
     </h2>
     <p class="mx-auto mt-1.5 max-w-[42ch] text-[12px] leading-relaxed text-[#b9a7a7]">
-      {{ description ?? 'Бэкенд не ответил. Повторите запрос — данные появятся, как только связь вернётся.' }}
+      {{ description ?? 'Не удалось загрузить данные. Проверьте связь и повторите запрос.' }}
     </p>
     <Button variant="outline" size="sm" class="mt-5 border-[#4a2c2c] hover:bg-[#221517]" @click="emit('retry')">
       Повторить

@@ -145,7 +145,7 @@ const fieldError = computed<string | null>(() => {
 const submitBlockedReason = computed<string | null>(() => {
   if (inFlight.value) return 'Отправляем ставку…'
   if (!active.value) return 'Выберите исход в линии'
-  if (line.stale.value) return 'Линия устарела. Ждём свежий тик.'
+  if (line.stale.value) return 'Линия устарела. Ждём обновления.'
   if (!session.player.value) {
     return session.loading.value ? 'Загружаем баланс…' : 'Баланс недоступен'
   }
@@ -246,7 +246,7 @@ function onPlaced(response: PlaceBetResponse): void {
   const summary = `${bet.matchLabel} · ${bet.outcomeLabel} · ${formatMoneyWhole(bet.stakeMinor)}`
 
   toast.success(response.replayed ? 'Ставка уже принята' : 'Ставка принята', {
-    description: response.replayed ? `${summary}. Повторный запрос не списал деньги.` : summary,
+    description: response.replayed ? `${summary}. Деньги не списаны повторно.` : summary,
   })
 
   session.setBalance(response.balanceMinor)
@@ -316,8 +316,8 @@ function handleFailure(cause: unknown, fromConflict: boolean): void {
       kind: 'network',
       message:
         error.code === 'timeout'
-          ? 'Сервер не ответил. Повторите отправку: ключ ставки сохранён, двойного списания не будет.'
-          : 'Нет связи с сервером. Повторите отправку: ключ ставки сохранён, двойного списания не будет.',
+          ? 'Сервер не ответил. Повторите отправку — ставка не спишется дважды.'
+          : 'Нет связи с сервером. Повторите отправку — ставка не спишется дважды.',
       retryable: true,
     }
     toast.error(error.code === 'timeout' ? 'Сервер не ответил' : 'Нет связи с сервером', {
@@ -393,7 +393,7 @@ async function acceptNewPrice(): Promise<void> {
   if (!conflict.value || resolvingConflict.value || inFlight.value) return
   if (!active.value || stakeMinor.value === null) return
   if (line.stale.value) {
-    toast.error('Линия устарела', { description: 'Дождитесь свежего обновления и повторите.' })
+    toast.error('Линия устарела', { description: 'Дождитесь обновления линии и повторите.' })
     return
   }
 
@@ -437,7 +437,7 @@ watch(
     if (isStale) {
       submitError.value = {
         kind: 'stale',
-        message: 'Линия устарела. Ставка не отправлена — дождитесь свежего обновления.',
+        message: 'Ставка не отправлена. Дождитесь обновления линии.',
         retryable: false,
       }
     } else if (submitError.value?.kind === 'stale') {

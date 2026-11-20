@@ -2,7 +2,6 @@
 import { WifiOff } from 'lucide-vue-next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLine } from '@/composables/useLine'
-import { formatMarginBps } from '@/lib/format'
 import EmptyState from './EmptyState.vue'
 import ErrorPanel from './ErrorPanel.vue'
 import MatchCard from './MatchCard.vue'
@@ -21,8 +20,7 @@ const { snapshot, loading, loadError, stale, refresh } = useLine()
     >
       <WifiOff class="mt-0.5 size-3.5 shrink-0 text-[#f26d6d]" aria-hidden="true" />
       <p class="text-[11px] leading-relaxed text-[#c7a9a9]">
-        Нет свежих цен больше 9 секунд. Ставки приостановлены: коэффициенты на экране могли
-        устареть.
+        Линия не обновляется. Ставки приостановлены, коэффициенты могли устареть.
       </p>
     </div>
 
@@ -72,7 +70,7 @@ const { snapshot, loading, loadError, stale, refresh } = useLine()
       <EmptyState
         v-if="snapshot.matches.length === 0"
         title="Линия пуста"
-        description="Сервер вернул пустой список матчей. Загляните чуть позже."
+        description="Матчей сейчас нет. Загляните позже."
       />
 
       <TransitionGroup
@@ -83,15 +81,6 @@ const { snapshot, loading, loadError, stale, refresh } = useLine()
       >
         <MatchCard v-for="match in snapshot.matches" :key="match.id" :match="match" />
       </TransitionGroup>
-
-      <div class="hidden items-center justify-between border-t border-line px-5 py-2.5 lg:flex">
-        <span class="text-[9px] uppercase tracking-[0.14em] text-faint">
-          Демо-линия · симуляция
-        </span>
-        <span class="text-[9px] uppercase tracking-[0.14em] text-faint">
-          Тик #{{ snapshot.seq }} · маржа {{ formatMarginBps(snapshot.marginBps) }}
-        </span>
-      </div>
     </div>
   </section>
 </template>

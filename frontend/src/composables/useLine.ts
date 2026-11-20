@@ -76,7 +76,7 @@ function connectStream(): void {
         disconnected = true
         if (phase.value === 'live') {
           toast.warning('Переподключение к линии', {
-            description: 'Цены остаются доступными, пока не устарели.',
+            description: 'Пытаемся восстановить связь.',
           })
         }
       }
@@ -121,12 +121,12 @@ function start(): void {
   stopStaleWatch = watch(stale, (isStale) => {
     if (isStale) {
       toast.error('Линия устарела', {
-        description: 'Ставки приостановлены, пока не придёт свежее обновление.',
+        description: 'Ставки приостановлены до обновления линии.',
         duration: 6_000,
       })
     } else if (snapshot.value) {
-      toast.success('Линия снова в эфире', {
-        description: 'Коэффициенты снова обновляются.',
+      toast.success('Связь восстановлена', {
+        description: 'Ставки снова доступны.',
         duration: 4_000,
       })
     }

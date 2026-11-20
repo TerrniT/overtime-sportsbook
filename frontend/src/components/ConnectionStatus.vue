@@ -20,8 +20,8 @@ const state = computed(() => {
 })
 
 const detail = computed(() => {
-  if (!snapshot.value) return 'Ждём первый снимок линии'
-  return `Тик #${snapshot.value.seq} · ${formatTime(snapshot.value.updatedAt)} · обновление каждые 3 с`
+  if (!snapshot.value) return 'Подключаемся к линии'
+  return `Обновлено в ${formatTime(snapshot.value.updatedAt)}`
 })
 </script>
 

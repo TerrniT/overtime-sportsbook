@@ -47,8 +47,7 @@ const formula = computed(() => {
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" :side-offset="6" class="max-w-[260px] leading-relaxed">
-          Ставка умножается на коэффициент, результат округляется вниз до копейки. В демо-режиме
-          выплата не начисляется.
+          Ставка × коэффициент. В демо-режиме выплата не начисляется.
         </TooltipContent>
       </Tooltip>
     </div>
