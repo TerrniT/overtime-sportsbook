@@ -247,6 +247,12 @@ function onPlaced(response: PlaceBetResponse): void {
 
   toast.success(response.replayed ? 'Ставка уже принята' : 'Ставка принята', {
     description: response.replayed ? `${summary}. Деньги не списаны повторно.` : summary,
+    action: {
+      label: 'Мои ставки',
+      onClick: () => {
+        document.getElementById('history-heading')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      },
+    },
   })
 
   session.setBalance(response.balanceMinor)

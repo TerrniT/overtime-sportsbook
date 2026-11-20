@@ -142,7 +142,8 @@
 
 }
 
-/* Price tick: one short, neutral opacity pass. Direction is carried by the trend mark. */
+/* Price tick: one short, neutral opacity pass. Direction is carried by the trend mark
+   and a short green/red wash at the bottom of the card. */
 .price-flash-enter-active {
   transition: opacity 160ms ease-out, color 160ms ease-out;
 }
@@ -157,6 +158,44 @@
 
 .price-flash-leave-to {
   opacity: 0;
+}
+
+.odds-change-glow {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 32px;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: odds-change-glow 1.1s ease-out forwards;
+}
+
+.odds-change-glow.up {
+  background: linear-gradient(to top, rgba(169, 207, 152, 0.34), rgba(169, 207, 152, 0));
+}
+
+.odds-change-glow.down {
+  background: linear-gradient(to top, rgba(242, 109, 109, 0.32), rgba(242, 109, 109, 0));
+}
+
+@keyframes odds-change-glow {
+  0% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .odds-change-glow {
+    animation: none;
+    opacity: 0.25;
+  }
 }
 
 /* Bet slip price notice */

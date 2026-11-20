@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RotateCw } from 'lucide-vue-next'
+import { Dices, RotateCw } from 'lucide-vue-next'
+import { toast } from '@yusufceng1z/ding-vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { isApiError } from '@/api/http'
 import { useBets } from '@/composables/useBets'
+import { useSession } from '@/composables/useSession'
 import type { Bet, BetStatus } from '@/api/types'
 import { formatMoney, formatOdds, formatPlacedAt } from '@/lib/format'
 import EmptyState from './EmptyState.vue'
 
-const { bets, loading, loaded, error, fetchBets } = useBets()
+const { bets, loading, loaded, error, settlingId, fetchBets, settleDemo } = useBets()
+const session = useSession()
 
 const statusMap: Record<BetStatus, { label: string; class: string }> = {
   pending: { label: 'В игре', class: 'border-sodium/35 bg-sodium/[0.07] text-sodium' },
@@ -23,6 +27,46 @@ const showEmpty = computed(() => !loading.value && loaded.value && bets.value.le
 
 function outcomeLabel(bet: Bet): string {
   return bet.outcomeLabel || bet.outcome
+}
+
+function payoutLabel(bet: Bet): string {
+  if (bet.status === 'won') return 'выигрыш'
+  if (bet.status === 'lost') return 'проигрыш'
+  if (bet.status === 'void') return 'возврат'
+  return 'возможный выигрыш'
+}
+
+function payoutAmount(bet: Bet): number {
+  return bet.status === 'lost' ? 0 : bet.potentialPayoutMinor
+}
+
+async function runDemoSettlement(bet: Bet): Promise<void> {
+  if (settlingId.value) return
+
+  try {
+    const result = await settleDemo(bet.id)
+    if (!result) return
+
+    session.setBalance(result.balanceMinor)
+    if (result.won) {
+      toast.success('Выигрыш зачислен', {
+        description: `${formatMoney(result.bet.potentialPayoutMinor)} · демо-расчёт`,
+        duration: 5_000,
+      })
+    } else {
+      toast.info('Ставка проиграла', {
+        description: 'Демо-расчёт: баланс не изменился.',
+        duration: 5_000,
+      })
+    }
+  } catch (cause) {
+    if (isApiError(cause)) {
+      toast.error(cause.message)
+      if (cause.code === 'bet_not_pending') void fetchBets()
+    } else {
+      toast.error('Не удалось разыграть ставку')
+    }
+  }
 }
 </script>
 
@@ -50,6 +94,11 @@ function outcomeLabel(bet: Bet): string {
         Обновить
       </Button>
     </div>
+
+    <p class="mb-3 max-w-[74ch] text-[10px] leading-relaxed text-faint">
+      Демо: ставка сразу списывается с баланса. Исход можно разыграть вручную кнопкой
+      «Демо-исход»; автоматического расчёта после матча нет.
+    </p>
 
     <div class="overflow-hidden rounded-[10px] border border-line bg-panel">
       <div v-if="showSkeleton" class="divide-y divide-line" aria-hidden="true">
@@ -117,22 +166,39 @@ function outcomeLabel(bet: Bet): string {
           <div class="flex items-center justify-between gap-4 sm:justify-end">
             <div class="text-right">
               <p class="font-display text-[16px] leading-none tracking-[0.02em] text-foreground tabular">
-                {{ formatMoney(bet.potentialPayoutMinor) }}
+                {{ formatMoney(payoutAmount(bet)) }}
               </p>
-              <p class="mt-0.5 text-[9px] uppercase tracking-[0.1em] text-faint">выигрыш</p>
+              <p class="mt-0.5 text-[9px] uppercase tracking-[0.1em] text-faint">
+                {{ payoutLabel(bet) }}
+              </p>
             </div>
-            <Badge
-              variant="outline"
-              class="h-[20px] rounded-[3px] px-1.5 text-[9px] font-medium uppercase tracking-[0.1em]"
-              :class="statusMap[bet.status].class"
-            >
-              <span
+            <div class="flex flex-col items-end gap-1.5">
+              <Badge
+                variant="outline"
+                class="h-[20px] rounded-[3px] px-1.5 text-[9px] font-medium uppercase tracking-[0.1em]"
+                :class="statusMap[bet.status].class"
+              >
+                <span
+                  v-if="bet.status === 'pending'"
+                  class="mr-1 size-1 rounded-full bg-sodium animate-pulse-soft"
+                  aria-hidden="true"
+                />
+                {{ statusMap[bet.status].label }}
+              </Badge>
+              <Button
                 v-if="bet.status === 'pending'"
-                class="mr-1 size-1 rounded-full bg-sodium animate-pulse-soft"
-                aria-hidden="true"
-              />
-              {{ statusMap[bet.status].label }}
-            </Badge>
+                type="button"
+                variant="outline"
+                size="sm"
+                :disabled="Boolean(settlingId)"
+                class="h-6 gap-1 rounded-[3px] border-line bg-transparent px-2 text-[9px] font-medium uppercase tracking-[0.08em] text-muted-foreground hover:bg-[#17171a] hover:text-foreground disabled:opacity-50"
+                :aria-label="`Разыграть демо-исход для ставки ${bet.matchLabel}`"
+                @click="runDemoSettlement(bet)"
+              >
+                <Dices class="size-3" aria-hidden="true" />
+                {{ settlingId === bet.id ? 'Разыгрываем…' : 'Демо-исход' }}
+              </Button>
+            </div>
           </div>
         </div>
       </template>

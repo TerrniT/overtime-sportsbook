@@ -19,7 +19,11 @@ const emit = defineEmits<{
 
 const flashVisible = ref(false)
 const flashKey = ref(0)
+const trendTone = ref<'up' | 'down'>('up')
+const trendVisible = ref(false)
+const trendKey = ref(0)
 let flashTimer: ReturnType<typeof setTimeout> | null = null
+let trendTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(
   () => props.outcome.priceMilli,
@@ -32,11 +36,21 @@ watch(
       flashVisible.value = false
       flashTimer = null
     }, 80)
+
+    trendTone.value = next > previous ? 'up' : 'down'
+    trendKey.value += 1
+    trendVisible.value = true
+    if (trendTimer) clearTimeout(trendTimer)
+    trendTimer = setTimeout(() => {
+      trendVisible.value = false
+      trendTimer = null
+    }, 1_100)
   },
 )
 
 onBeforeUnmount(() => {
   if (flashTimer) clearTimeout(flashTimer)
+  if (trendTimer) clearTimeout(trendTimer)
 })
 
 const trendLabel = computed(() => {
@@ -84,6 +98,14 @@ const ariaLabel = computed(
       />
     </Transition>
 
+    <span
+      v-if="trendVisible"
+      :key="`trend-${trendKey}`"
+      aria-hidden="true"
+      class="odds-change-glow"
+      :class="trendTone"
+    />
+
     <span class="relative flex items-center justify-between gap-1">
       <span
         class="text-[9px] font-medium uppercase leading-none tracking-[0.16em]"
@@ -96,7 +118,7 @@ const ariaLabel = computed(
         v-if="outcome.trend !== 'flat'"
         :title="trendLabel"
         class="inline-flex items-center"
-        :class="selected ? 'text-ink/70' : outcome.trend === 'up' ? 'text-[#d7d0c2]' : 'text-[#8b857b]'"
+        :class="selected ? 'text-ink/70' : outcome.trend === 'up' ? 'text-[#a9cf98]' : 'text-[#f26d6d]'"
       >
         <ArrowUpRight v-if="outcome.trend === 'up'" class="size-3" aria-hidden="true" />
         <ArrowDownRight v-else class="size-3" aria-hidden="true" />

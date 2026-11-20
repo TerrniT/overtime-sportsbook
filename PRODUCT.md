@@ -29,14 +29,15 @@ charged twice.
 
 The line shows its work. Every price exposes the two source prices it was derived from, while the
 house margin stays in the back office. It is a demonstrator of a priced market rather than an opaque
-casino. No registration, no settlement, no admin: the line and the bet are the whole product.
+casino. No registration, no admin, no automatic settlement: the line, the bet, and a manual demo
+resolution are the whole product.
 
 ## Operating Context
 
 Used in short sessions while matches approach kickoff. Odds refresh every few seconds and the
 page must stay honest when the connection drops: stale prices are marked stale and betting is
-blocked rather than accepting a price the server no longer honors. Bets stay pending; the brief
-explicitly excludes settling them after the match.
+blocked rather than accepting a price the server no longer honors. Bets stay pending until the
+user presses «Демо-исход»; automatic settlement after the match is explicitly out of scope.
 
 ## Capabilities and Constraints
 
@@ -51,7 +52,8 @@ explicitly excludes settling them after the match.
   transaction that records the bet; no negative balance is possible (DB CHECK + row lock).
 - Money is never a float: BIGINT minor units on the server, integer `priceMilli` for odds,
   integer arithmetic for payout, `Intl.NumberFormat` for display.
-- Russian UI copy. No auth, registration, settlement, cash-out, or admin.
+- Russian UI copy. No auth, registration, automatic match settlement, cash-out, or admin; a pending
+  bet can be resolved manually in the demo to show a win or a loss.
 - Must run locally with a single `docker compose up`, no external services or keys.
 
 ## Brand Commitments

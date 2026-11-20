@@ -45,7 +45,8 @@ const oddsDisabled = computed(() => stale.value || inFlight.value || hasUnresolv
       </div>
       <Badge
         variant="outline"
-        class="h-[18px] max-w-[140px] truncate rounded-[3px] border-line bg-transparent px-1.5 text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground lg:mt-2"
+        :title="match.league"
+        class="h-[18px] max-w-[140px] truncate rounded-[3px] border-line bg-transparent px-1.5 text-[8px] font-medium uppercase leading-none tracking-[0.08em] text-muted-foreground lg:mt-2 lg:max-w-[64px] lg:px-0.5 lg:tracking-[0.04em]"
       >
         {{ match.league }}
       </Badge>

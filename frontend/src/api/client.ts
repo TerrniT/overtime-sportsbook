@@ -5,6 +5,7 @@ import type {
   PlaceBetRequest,
   PlaceBetResponse,
   SessionResponse,
+  SettleDemoResponse,
 } from './types'
 
 export function getSession(): Promise<SessionResponse> {
@@ -22,4 +23,11 @@ export function getBets(limit = 20): Promise<BetsResponse> {
 
 export function placeBet(payload: PlaceBetRequest): Promise<PlaceBetResponse> {
   return request<PlaceBetResponse>('/bets', { method: 'POST', body: payload })
+}
+
+/** Demo-only: resolve a pending bet immediately and return the won/lost state. */
+export function settleBetDemo(betId: string): Promise<SettleDemoResponse> {
+  return request<SettleDemoResponse>(`/bets/${encodeURIComponent(betId)}/settle-demo`, {
+    method: 'POST',
+  })
 }

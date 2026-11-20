@@ -2,7 +2,9 @@ package betting
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +22,8 @@ var (
 	ErrStakeOutOfRange   = errors.New("betting: stake out of range")
 	ErrInsufficientFunds = errors.New("betting: insufficient funds")
 	ErrOddsChanged       = errors.New("betting: odds changed")
+	ErrBetNotFound       = errors.New("betting: bet not found")
+	ErrBetNotPending     = errors.New("betting: bet is not pending")
 )
 
 // OddsChangedError is returned when the client's expected price no longer
@@ -42,6 +46,9 @@ type Deps struct {
 	MinStakeMinor int64
 	MaxStakeMinor int64
 	Now           func() time.Time
+	// SettleRoll returns a number in [0, 10000) used only by SettleDemo.
+	// Tests inject a deterministic roll; production uses crypto/rand.
+	SettleRoll func() (int, error)
 }
 
 // Service applies betting rules on top of the store and the live line.
@@ -57,7 +64,18 @@ func New(d Deps) *Service {
 	if d.Now == nil {
 		d.Now = time.Now
 	}
+	if d.SettleRoll == nil {
+		d.SettleRoll = defaultSettleRoll
+	}
 	return &Service{deps: d, subs: make(map[chan BalanceEvent]struct{})}
+}
+
+func defaultSettleRoll() (int, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(10_000))
+	if err != nil {
+		return 0, err
+	}
+	return int(n.Int64()), nil
 }
 
 // PlaceInput is a validated bet request from the HTTP layer.
@@ -74,6 +92,13 @@ type PlaceResult struct {
 	Bet          store.Bet
 	BalanceMinor int64
 	Replayed     bool
+}
+
+// SettleResult is the outcome of a manual demo settlement.
+type SettleResult struct {
+	Bet          store.Bet
+	BalanceMinor int64
+	Won          bool
 }
 
 // Place validates the market and price, then records the bet.
@@ -163,6 +188,50 @@ func (s *Service) Session(ctx context.Context) (store.Player, error) {
 // limit (default 20, maximum 50).
 func (s *Service) History(ctx context.Context, limit int) ([]store.Bet, error) {
 	return s.deps.Store.Bets(ctx, s.deps.PlayerID, limit)
+}
+
+// SettleDemo resolves a pending bet immediately. It exists only so the demo
+// can show a win or a loss without waiting for a match; it is not automatic
+// settlement. The win probability follows the accepted price (1/price).
+func (s *Service) SettleDemo(ctx context.Context, betID string) (SettleResult, error) {
+	if _, err := uuid.Parse(betID); err != nil {
+		return SettleResult{}, ErrInvalidRequest
+	}
+
+	bet, err := s.deps.Store.FindBetByID(ctx, s.deps.PlayerID, betID)
+	if errors.Is(err, store.ErrNotFound) {
+		return SettleResult{}, ErrBetNotFound
+	}
+	if err != nil {
+		return SettleResult{}, err
+	}
+	if bet.Status != "pending" {
+		return SettleResult{}, ErrBetNotPending
+	}
+
+	roll, err := s.deps.SettleRoll()
+	if err != nil {
+		return SettleResult{}, err
+	}
+	// 10_000 * 1000 / priceMilli is the implied probability in basis points
+	// of a 10_000-sided roll: a 2.00 price wins half the time.
+	threshold := int64(10_000_000) / bet.PriceMilli
+	win := int64(roll) < threshold
+
+	bet, balance, err := s.deps.Store.SettleBet(ctx, s.deps.PlayerID, betID, win)
+	switch {
+	case errors.Is(err, store.ErrBetNotPending):
+		return SettleResult{}, ErrBetNotPending
+	case errors.Is(err, store.ErrNotFound):
+		return SettleResult{}, ErrBetNotFound
+	case err != nil:
+		return SettleResult{}, err
+	}
+
+	if win {
+		s.publish(BalanceEvent{BalanceMinor: balance, Currency: "RUB"})
+	}
+	return SettleResult{Bet: bet, BalanceMinor: balance, Won: win}, nil
 }
 
 // BalanceEvent is published after a bet changes the player's balance.

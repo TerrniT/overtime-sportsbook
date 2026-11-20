@@ -89,6 +89,13 @@ export interface BetsResponse {
   bets: Bet[]
 }
 
+export interface SettleDemoResponse {
+  bet: Bet
+  balanceMinor: number
+  currency: Currency
+  won: boolean
+}
+
 export interface BalanceEvent {
   balanceMinor: number
   currency: Currency
@@ -106,5 +113,7 @@ export type ErrorCode =
   | 'insufficient_funds'
   | 'odds_changed'
   | 'market_not_found'
+  | 'bet_not_found'
+  | 'bet_not_pending'
   | 'not_found'
   | 'internal'

@@ -16,6 +16,7 @@ const DemoPlayerID = "11111111-1111-4111-8111-111111111111"
 var (
 	ErrNotFound          = errors.New("store: not found")
 	ErrInsufficientFunds = errors.New("store: insufficient funds")
+	ErrBetNotPending     = errors.New("store: bet is not pending")
 )
 
 // Player is the demo bettor.
@@ -153,6 +154,95 @@ func (s *Store) FindBet(ctx context.Context, playerID, key string) (Bet, bool, e
 		return Bet{}, false, err
 	}
 	return bet, true, nil
+}
+
+// FindBetByID returns one stored bet for a player.
+func (s *Store) FindBetByID(ctx context.Context, playerID, betID string) (Bet, error) {
+	bet, err := scanBet(s.pool.QueryRow(ctx, `
+		select `+betColumns+`
+		from bets
+		where id = $1 and player_id = $2`, betID, playerID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Bet{}, ErrNotFound
+	}
+	if err != nil {
+		return Bet{}, err
+	}
+	return bet, nil
+}
+
+// SettleBet applies a demo result to a pending bet. A win credits the stored
+// potential payout and writes a `bet_win` ledger row; a loss only flips the
+// status. The player row and the bet row are locked, so a bet is settled once.
+func (s *Store) SettleBet(ctx context.Context, playerID, betID string, win bool) (Bet, int64, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Bet{}, 0, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	var balance int64
+	err = tx.QueryRow(ctx,
+		`select balance_minor from players where id = $1 for update`, playerID,
+	).Scan(&balance)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Bet{}, 0, ErrNotFound
+	}
+	if err != nil {
+		return Bet{}, 0, err
+	}
+
+	bet, err := scanBet(tx.QueryRow(ctx, `
+		select `+betColumns+`
+		from bets
+		where id = $1 and player_id = $2
+		for update`, betID, playerID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Bet{}, 0, ErrNotFound
+	}
+	if err != nil {
+		return Bet{}, 0, err
+	}
+	if bet.Status != "pending" {
+		return Bet{}, 0, ErrBetNotPending
+	}
+
+	status := "lost"
+	if win {
+		status = "won"
+		err = tx.QueryRow(ctx, `
+			update players
+			set balance_minor = balance_minor + $1
+			where id = $2
+			returning balance_minor`, bet.PotentialPayoutMinor, playerID,
+		).Scan(&balance)
+		if err != nil {
+			return Bet{}, 0, err
+		}
+		if _, err := tx.Exec(ctx, `
+			insert into ledger_entries (player_id, bet_id, kind, amount_minor, balance_after_minor)
+			values ($1, $2, 'bet_win', $3, $4)`,
+			playerID, betID, bet.PotentialPayoutMinor, balance,
+		); err != nil {
+			return Bet{}, 0, err
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `update bets set status = $1 where id = $2`, status, betID); err != nil {
+		return Bet{}, 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Bet{}, 0, err
+	}
+	committed = true
+
+	bet.Status = status
+	return bet, balance, nil
 }
 
 // PlaceBet records the bet, debits the stake and writes a ledger entry in one

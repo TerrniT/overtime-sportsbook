@@ -1,12 +1,13 @@
 import { ref } from 'vue'
-import { getBets } from '@/api/client'
+import { getBets, settleBetDemo } from '@/api/client'
 import { apiErrorMessage } from '@/api/http'
-import type { Bet } from '@/api/types'
+import type { Bet, SettleDemoResponse } from '@/api/types'
 
 const bets = ref<Bet[]>([])
 const loading = ref(false)
 const loaded = ref(false)
 const error = ref<string | null>(null)
+const settlingId = ref<string | null>(null)
 
 let pending: Promise<void> | null = null
 
@@ -43,13 +44,28 @@ function prependBet(bet: Bet): void {
   loaded.value = true
 }
 
+/** Demo-only settlement: replace the pending bet with its won/lost copy. */
+async function settleDemo(betId: string): Promise<SettleDemoResponse | null> {
+  if (settlingId.value) return null
+  settlingId.value = betId
+  try {
+    const response = await settleBetDemo(betId)
+    bets.value = bets.value.map((bet) => (bet.id === betId ? response.bet : bet))
+    return response
+  } finally {
+    settlingId.value = null
+  }
+}
+
 export function useBets() {
   return {
     bets,
     loading,
     loaded,
     error,
+    settlingId,
     fetchBets,
     prependBet,
+    settleDemo,
   }
 }

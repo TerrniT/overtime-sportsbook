@@ -124,6 +124,8 @@ Base path `/api`. JSON in, JSON out, UTF-8. All errors share one envelope:
 | `insufficient_funds` | 422 |
 | `odds_changed` | 409 |
 | `market_not_found` | 404 |
+| `bet_not_found` | 404 |
+| `bet_not_pending` | 409 |
 | `not_found` | 404 |
 | `internal` | 500 |
 
@@ -226,6 +228,25 @@ strict check is fine; at minimum validate the listed fields).
 
 Newest first, `limit` clamped to 1–50, default 20.
 
+### POST /api/bets/{id}/settle-demo
+
+Demo-only manual settlement. The server draws a win with probability `1 / price`; a win credits the
+stored `potentialPayoutMinor` and writes a `bet_win` ledger row, a loss only changes the status.
+This is not automatic settlement after a match.
+
+```json
+{
+  "bet": { "id": "…", "status": "won", "potentialPayoutMinor": 95500, "…": "…" },
+  "balanceMinor": 2545500,
+  "currency": "RUB",
+  "won": true
+}
+```
+
+`409 bet_not_pending` if the bet was already settled, `404 bet_not_found` for an unknown bet,
+`422 validation_error` for a non-UUID id. The player row and the bet row are locked, so a payout
+cannot be credited twice.
+
 ### GET /api/stream (SSE)
 
 Headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`,
@@ -280,22 +301,27 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error
 func New(pool *pgxpool.Pool) *Store
 func (s *Store) Player(ctx context.Context, id string) (Player, error)
 func (s *Store) Bets(ctx context.Context, playerID string, limit int) ([]Bet, error)
+func (s *Store) FindBet(ctx context.Context, playerID, key string) (Bet, bool, error)
+func (s *Store) FindBetByID(ctx context.Context, playerID, betID string) (Bet, error)
 func (s *Store) PlaceBet(ctx context.Context, in PlaceBetInput) (Bet, int64, bool, error) // bet, balance, replayed, err
-var ErrInsufficientFunds, ErrNotFound error
+func (s *Store) SettleBet(ctx context.Context, playerID, betID string, win bool) (Bet, int64, error)
+var ErrInsufficientFunds, ErrNotFound, ErrBetNotPending error
 
 // internal/betting
-type Deps struct { Store *store.Store; Engine *line.Engine; PlayerID string; MinStakeMinor, MaxStakeMinor int64; Now func() time.Time }
+type Deps struct { Store *store.Store; Engine *line.Engine; PlayerID string; MinStakeMinor, MaxStakeMinor int64; Now func() time.Time; SettleRoll func() (int, error) }
 func New(d Deps) *Service
 type PlaceInput struct { MatchID, Outcome string; StakeMinor, ExpectedPriceMilli int64; IdempotencyKey string }
 type PlaceResult struct { Bet store.Bet; BalanceMinor int64; Replayed bool }
+type SettleResult struct { Bet store.Bet; BalanceMinor int64; Won bool }
 func (s *Service) Place(ctx context.Context, in PlaceInput) (PlaceResult, error)
+func (s *Service) SettleDemo(ctx context.Context, betID string) (SettleResult, error)
 func (s *Service) Session(ctx context.Context) (store.Player, error)
 func (s *Service) History(ctx context.Context, limit int) ([]store.Bet, error)
 // SubscribeBalance fans out the player's balance after every accepted bet
-// (including idempotent replays). Slow subscribers are dropped, never blocked.
+// (including idempotent replays and demo wins). Slow subscribers are dropped.
 type BalanceEvent struct { BalanceMinor int64; Currency string }
 func (s *Service) SubscribeBalance() (<-chan BalanceEvent, func())
-var ErrMarketNotFound, ErrOddsChanged error
+var ErrMarketNotFound, ErrOddsChanged, ErrBetNotFound, ErrBetNotPending error
 type OddsChangedError struct { Expected, Current int64 }
 var ErrInsufficientFunds, ErrStakeOutOfRange, ErrInvalidRequest error
 

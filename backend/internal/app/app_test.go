@@ -28,11 +28,12 @@ import (
 var fixedTime = time.Date(2026, 11, 20, 18, 0, 0, 0, time.UTC)
 
 type testEnv struct {
-	app     *fiber.App
-	engine  *line.Engine
-	service *betting.Service
-	store   *store.Store
-	pool    *pgxpool.Pool
+	app        *fiber.App
+	engine     *line.Engine
+	service    *betting.Service
+	store      *store.Store
+	pool       *pgxpool.Pool
+	settleRoll *int
 }
 
 func newTestEnv(t *testing.T) *testEnv {
@@ -55,6 +56,8 @@ func newTestEnv(t *testing.T) *testEnv {
 		return fixedTime.Add(time.Duration(clock.Add(1)-1) * time.Second)
 	}
 
+	settleRoll := 0
+
 	svc := betting.New(betting.Deps{
 		Store:         store.New(pool),
 		Engine:        engine,
@@ -62,6 +65,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		MinStakeMinor: 10_000,
 		MaxStakeMinor: 500_000,
 		Now:           serviceNow,
+		SettleRoll:    func() (int, error) { return settleRoll, nil },
 	})
 
 	fiberApp := app.New(app.Deps{
@@ -73,11 +77,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	t.Cleanup(func() { _ = fiberApp.ShutdownWithTimeout(2 * time.Second) })
 
 	return &testEnv{
-		app:     fiberApp,
-		engine:  engine,
-		service: svc,
-		store:   store.New(pool),
-		pool:    pool,
+		app:        fiberApp,
+		engine:     engine,
+		service:    svc,
+		store:      store.New(pool),
+		pool:       pool,
+		settleRoll: &settleRoll,
 	}
 }
 
@@ -207,6 +212,13 @@ type betResponse struct {
 	BalanceMinor int64  `json:"balanceMinor"`
 	Currency     string `json:"currency"`
 	Replayed     bool   `json:"replayed"`
+}
+
+type settleResponse struct {
+	Bet          betDTO `json:"bet"`
+	BalanceMinor int64  `json:"balanceMinor"`
+	Currency     string `json:"currency"`
+	Won          bool   `json:"won"`
 }
 
 func pickHome(t *testing.T, env *testEnv) (line.Match, line.Outcome) {
@@ -787,6 +799,88 @@ func TestPlaceBetReplayAfterPriceChange(t *testing.T) {
 	if got := countQuery(t, env.pool, `select count(*) from ledger_entries where kind = 'bet_stake'`); got != 1 {
 		t.Fatalf("bet_stake ledger rows = %d after replay, want 1", got)
 	}
+}
+
+func TestSettleDemoBetWin(t *testing.T) {
+	env := newTestEnv(t)
+	*env.settleRoll = 0
+
+	match, outcome := pickHome(t, env)
+	status, body, _ := request(t, env.app, http.MethodPost, "/api/bets",
+		betBody(match, outcome, 50_000, testsupport.UUID(t)))
+	if status != http.StatusCreated {
+		t.Fatalf("place bet status = %d, want 201\nbody: %s", status, body)
+	}
+	placed := decode[betResponse](t, body)
+
+	status, body, _ = request(t, env.app, http.MethodPost, "/api/bets/"+placed.Bet.ID+"/settle-demo", nil)
+	if status != http.StatusOK {
+		t.Fatalf("settle status = %d, want 200\nbody: %s", status, body)
+	}
+	settled := decode[settleResponse](t, body)
+	if !settled.Won {
+		t.Fatal("settle reported won=false, want true")
+	}
+	if settled.Bet.Status != "won" {
+		t.Fatalf("settled status = %q, want won", settled.Bet.Status)
+	}
+	wantBalance := int64(2_500_000-50_000) + placed.Bet.PotentialPayoutMinor
+	if settled.BalanceMinor != wantBalance {
+		t.Fatalf("settled balance = %d, want %d", settled.BalanceMinor, wantBalance)
+	}
+	if got := countQuery(t, env.pool,
+		`select count(*) from ledger_entries where kind = 'bet_win' and bet_id = $1 and amount_minor = $2 and balance_after_minor = $3`,
+		placed.Bet.ID, placed.Bet.PotentialPayoutMinor, wantBalance); got != 1 {
+		t.Fatalf("bet_win ledger rows = %d, want 1", got)
+	}
+
+	// A second settlement must not credit the payout twice.
+	status, body, _ = request(t, env.app, http.MethodPost, "/api/bets/"+placed.Bet.ID+"/settle-demo", nil)
+	expectError(t, status, body, http.StatusConflict, "bet_not_pending")
+	if got := countQuery(t, env.pool, `select balance_minor from players where id = $1`, store.DemoPlayerID); got != wantBalance {
+		t.Fatalf("balance after double settle = %d, want %d", got, wantBalance)
+	}
+}
+
+func TestSettleDemoBetLoss(t *testing.T) {
+	env := newTestEnv(t)
+	*env.settleRoll = 9_999
+
+	match, outcome := pickHome(t, env)
+	status, body, _ := request(t, env.app, http.MethodPost, "/api/bets",
+		betBody(match, outcome, 50_000, testsupport.UUID(t)))
+	if status != http.StatusCreated {
+		t.Fatalf("place bet status = %d, want 201\nbody: %s", status, body)
+	}
+	placed := decode[betResponse](t, body)
+
+	status, body, _ = request(t, env.app, http.MethodPost, "/api/bets/"+placed.Bet.ID+"/settle-demo", nil)
+	if status != http.StatusOK {
+		t.Fatalf("settle status = %d, want 200\nbody: %s", status, body)
+	}
+	settled := decode[settleResponse](t, body)
+	if settled.Won {
+		t.Fatal("settle reported won=true, want false")
+	}
+	if settled.Bet.Status != "lost" {
+		t.Fatalf("settled status = %q, want lost", settled.Bet.Status)
+	}
+	if settled.BalanceMinor != 2_450_000 {
+		t.Fatalf("settled balance = %d, want 2450000", settled.BalanceMinor)
+	}
+	if got := countQuery(t, env.pool, `select count(*) from ledger_entries where kind = 'bet_win' and bet_id = $1`, placed.Bet.ID); got != 0 {
+		t.Fatalf("bet_win ledger rows after loss = %d, want 0", got)
+	}
+}
+
+func TestSettleDemoUnknownBet(t *testing.T) {
+	env := newTestEnv(t)
+
+	status, body, _ := request(t, env.app, http.MethodPost, "/api/bets/"+testsupport.UUID(t)+"/settle-demo", nil)
+	expectError(t, status, body, http.StatusNotFound, "bet_not_found")
+
+	status, body, _ = request(t, env.app, http.MethodPost, "/api/bets/not-a-uuid/settle-demo", nil)
+	expectError(t, status, body, http.StatusUnprocessableEntity, "validation_error")
 }
 
 func TestBetAfterInsufficientFundsStillWorks(t *testing.T) {

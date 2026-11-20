@@ -280,8 +280,9 @@ Three equal buttons per fixture, 58–62px high, label above and a 25–27px tab
 small trend arrow in the top-right. Unselected is Control Surface with a hairline; hover raises the
 surface and the border. Selected is full sodium with ink text, an orange ring/glow and no ambiguity.
 A price change starts one 160ms opacity flash through a Vue `<Transition>`, while a NumberTicker
-rolls the value. Stale line dims every button to 40% and removes the pointer; the bet slip explains
-why in text.
+rolls the value. A short green/red wash at the bottom of the card marks the direction: green for a
+higher price, red for a lower one. Stale line dims every button to 40% and removes the pointer; the
+bet slip explains why in text.
 
 ### Source Breakdown (signature)
 An expandable hairline table under a fixture: outcome, PulseBet price, SharpLine price, and our
@@ -296,6 +297,12 @@ tag + price, price-change notice (Vue Transition), stake field, potential payout
 balance, inline error and the primary action. The 409 dialog is a separate 440px surface showing the
 old price, the new price, the new payout, and two explicit actions; it never auto-retries.
 
+### Bet History (demo)
+A hairline list below the line. A pending row shows «В игре», the potential payout and a small
+«Демо-исход» action; resolving it changes the badge to «Выиграла» / «Проиграла», shows the actual
+payout (zero on a loss) and updates the balance. A one-line note states that automatic settlement
+after a match is out of scope.
+
 ### Status and Toasts
 Connection is a 24px hairline pill with a 6px dot: sodium + pulse for "В линии", sodium at 70% for
 "Переподключение…", red for "Нет связи". Toasts are dark raised cards, 10px radius, orange for
@@ -305,6 +312,7 @@ success, red for error, with a 1px border and the floating shadow.
 
 ### Do:
 - **Do** keep orange for selection, primary action, live state and price change. If a region is orange, it is a decision.
+- **Do** use green and red only for price direction and resolved bet outcomes; they are signals, not decoration.
 - **Do** show both source prices and the final price in the disclosure; keep margin out of the customer surface.
 - **Do** use 1px hairlines and one-step tonal surfaces before reaching for a shadow.
 - **Do** keep odds and money tabular, comma-decimal, and floored from integer kopecks.

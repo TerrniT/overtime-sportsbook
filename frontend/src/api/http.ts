@@ -15,6 +15,8 @@ const FALLBACK_MESSAGE: Record<ClientErrorCode, string> = {
   insufficient_funds: 'Недостаточно средств на балансе',
   odds_changed: 'Коэффициент изменился',
   market_not_found: 'Рынок больше не доступен',
+  bet_not_found: 'Ставка не найдена',
+  bet_not_pending: 'Ставка уже рассчитана',
   not_found: 'Сервер не нашёл запрошенный ресурс',
   internal: 'Внутренняя ошибка сервера',
   network: 'Нет связи с сервером',

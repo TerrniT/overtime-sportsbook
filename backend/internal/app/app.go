@@ -58,6 +58,7 @@ func New(d Deps) *fiber.App {
 	api.Get("/line", s.line)
 	api.Get("/bets", s.bets)
 	api.Post("/bets", s.placeBet)
+	api.Post("/bets/:id/settle-demo", s.settleDemoBet)
 	api.Get("/stream", s.stream)
 	api.Get("/healthz", s.healthz)
 	return app
@@ -149,6 +150,19 @@ func (s *server) placeBet(c *fiber.Ctx) error {
 		"balanceMinor": result.BalanceMinor,
 		"currency":     currencyRUB,
 		"replayed":     result.Replayed,
+	})
+}
+
+func (s *server) settleDemoBet(c *fiber.Ctx) error {
+	result, err := s.deps.Service.SettleDemo(c.UserContext(), c.Params("id"))
+	if err != nil {
+		return bettingError(c, err)
+	}
+	return c.JSON(fiber.Map{
+		"bet":          result.Bet,
+		"balanceMinor": result.BalanceMinor,
+		"currency":     currencyRUB,
+		"won":          result.Won,
 	})
 }
 
@@ -254,6 +268,10 @@ func bettingError(c *fiber.Ctx, err error) error {
 		})
 	case errors.Is(err, betting.ErrMarketNotFound):
 		return apiError(c, fiber.StatusNotFound, "market_not_found", "Матч или исход не найден", nil)
+	case errors.Is(err, betting.ErrBetNotFound):
+		return apiError(c, fiber.StatusNotFound, "bet_not_found", "Ставка не найдена", nil)
+	case errors.Is(err, betting.ErrBetNotPending):
+		return apiError(c, fiber.StatusConflict, "bet_not_pending", "Ставка уже рассчитана", nil)
 	case errors.Is(err, betting.ErrInsufficientFunds):
 		return apiError(c, fiber.StatusUnprocessableEntity, "insufficient_funds", "Недостаточно средств", nil)
 	case errors.Is(err, betting.ErrStakeOutOfRange):
