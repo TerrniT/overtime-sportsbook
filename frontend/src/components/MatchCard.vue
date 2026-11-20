@@ -5,7 +5,7 @@ import type { Match } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { useBetSlip } from '@/composables/useBetSlip'
 import { useLine } from '@/composables/useLine'
-import { formatKickoff, formatKickoffDay, formatKickoffFull } from '@/lib/format'
+import { formatKickoffDay, formatKickoffFull, formatMatchLabel, formatTime } from '@/lib/format'
 import OddsButton from './OddsButton.vue'
 import SourceBreakdown from './SourceBreakdown.vue'
 
@@ -16,7 +16,7 @@ const { stale } = useLine()
 
 const expanded = ref(false)
 const sourcesId = computed(() => `sources-${props.match.id}`)
-const matchLabel = computed(() => `${props.match.homeTeam} — ${props.match.awayTeam}`)
+const matchLabel = computed(() => formatMatchLabel(props.match))
 const rowSelected = computed(() => active.value?.match.id === props.match.id)
 
 function isSelected(outcomeKey: string): boolean {
@@ -37,7 +37,7 @@ const oddsDisabled = computed(() => stale.value || inFlight.value || hasUnresolv
           class="font-display text-[19px] leading-none tracking-[0.04em] text-foreground tabular"
           :title="formatKickoffFull(match.startsAt)"
         >
-          {{ formatKickoff(match.startsAt) }}
+          {{ formatTime(match.startsAt) }}
         </span>
         <span class="text-[10px] uppercase tracking-[0.1em] text-faint lg:mt-1 lg:block">
           {{ formatKickoffDay(match.startsAt) }}

@@ -197,6 +197,14 @@ function resetAttempt(): void {
   lastAttempt = null
 }
 
+function resetSlipState(): void {
+  resetAttempt()
+  submitError.value = null
+  conflict.value = null
+  touched.value = false
+  clearPriceNotice()
+}
+
 function setStakeInput(value: string): void {
   if (hasUnresolvedAttempt.value) return
   stakeInput.value = value
@@ -224,21 +232,13 @@ function select(match: Match, outcome: Outcome): void {
   }
 
   selection.value = { matchId: match.id, outcome: outcome.key }
-  resetAttempt()
-  submitError.value = null
-  conflict.value = null
-  touched.value = false
-  clearPriceNotice()
+  resetSlipState()
 }
 
 function clearSelection(): void {
   if (hasUnresolvedAttempt.value) return
   selection.value = null
-  resetAttempt()
-  submitError.value = null
-  conflict.value = null
-  touched.value = false
-  clearPriceNotice()
+  resetSlipState()
 }
 
 function onPlaced(response: PlaceBetResponse): void {
@@ -255,11 +255,7 @@ function onPlaced(response: PlaceBetResponse): void {
 
   selection.value = null
   stakeInput.value = ''
-  touched.value = false
-  submitError.value = null
-  conflict.value = null
-  resetAttempt()
-  clearPriceNotice()
+  resetSlipState()
 }
 
 function numberDetail(value: unknown): number | null {

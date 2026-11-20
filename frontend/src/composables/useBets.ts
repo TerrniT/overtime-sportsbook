@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { getBets } from '@/api/client'
-import { isApiError } from '@/api/http'
+import { apiErrorMessage } from '@/api/http'
 import type { Bet } from '@/api/types'
 
 const bets = ref<Bet[]>([])
@@ -27,7 +27,7 @@ async function fetchBets(limit = 20): Promise<void> {
       bets.value = data.bets
       loaded.value = true
     } catch (cause) {
-      error.value = isApiError(cause) ? cause.message : 'Не удалось загрузить историю ставок'
+      error.value = apiErrorMessage(cause, 'Не удалось загрузить историю ставок')
     } finally {
       loading.value = false
       pending = null

@@ -68,6 +68,25 @@ func New(pool *pgxpool.Pool) *Store {
 const betColumns = `id::text, match_id, match_label, outcome, outcome_label,
 	stake_minor, price_milli, potential_payout_minor, status, placed_at`
 
+const betByKeySQL = `select ` + betColumns + `
+	from bets
+	where player_id = $1 and idempotency_key = $2`
+
+const (
+	defaultBetsLimit = 20
+	maxBetsLimit     = 50
+)
+
+func clampBetsLimit(limit int) int {
+	if limit <= 0 {
+		return defaultBetsLimit
+	}
+	if limit > maxBetsLimit {
+		return maxBetsLimit
+	}
+	return limit
+}
+
 func scanBet(row pgx.Row) (Bet, error) {
 	var bet Bet
 	err := row.Scan(&bet.ID, &bet.MatchID, &bet.MatchLabel, &bet.Outcome, &bet.OutcomeLabel,
@@ -94,12 +113,7 @@ func (s *Store) Player(ctx context.Context, id string) (Player, error) {
 // Bets lists a player's bets, newest first. The limit is clamped to 1..50;
 // a non-positive limit means the default of 20.
 func (s *Store) Bets(ctx context.Context, playerID string, limit int) ([]Bet, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 50 {
-		limit = 50
-	}
+	limit = clampBetsLimit(limit)
 
 	rows, err := s.pool.Query(ctx, `
 		select `+betColumns+`
@@ -131,10 +145,7 @@ func (s *Store) Bets(ctx context.Context, playerID string, limit int) ([]Bet, er
 // balance checks so that a retry of an accepted bet always replays, even if
 // the line or the balance has moved since the first attempt.
 func (s *Store) FindBet(ctx context.Context, playerID, key string) (Bet, bool, error) {
-	bet, err := scanBet(s.pool.QueryRow(ctx, `
-		select `+betColumns+`
-		from bets
-		where player_id = $1 and idempotency_key = $2`, playerID, key))
+	bet, err := scanBet(s.pool.QueryRow(ctx, betByKeySQL, playerID, key))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Bet{}, false, nil
 	}
@@ -172,10 +183,7 @@ func (s *Store) PlaceBet(ctx context.Context, in PlaceBetInput) (Bet, int64, boo
 		return Bet{}, 0, false, err
 	}
 
-	existing, err := scanBet(tx.QueryRow(ctx, `
-		select `+betColumns+`
-		from bets
-		where player_id = $1 and idempotency_key = $2`, in.PlayerID, in.IdempotencyKey))
+	existing, err := scanBet(tx.QueryRow(ctx, betByKeySQL, in.PlayerID, in.IdempotencyKey))
 	switch {
 	case err == nil:
 		return existing, balance, true, nil
@@ -243,30 +251,19 @@ func (s *Store) PlaceBet(ctx context.Context, in PlaceBetInput) (Bet, int64, boo
 }
 
 // replayBet reads an already stored bet and the player's current balance. It
-// runs after the unique-violation rollback, so it cannot reuse the failed
-// transaction.
+// runs after the unique-violation rollback, so it reads through the pool
+// instead of the failed transaction.
 func (s *Store) replayBet(ctx context.Context, playerID, key string, cause error) (Bet, int64, bool, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return Bet{}, 0, false, err
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	bet, err := scanBet(tx.QueryRow(ctx, `
-		select `+betColumns+`
-		from bets
-		where player_id = $1 and idempotency_key = $2`, playerID, key))
-	if err != nil {
+	bet, found, err := s.FindBet(ctx, playerID, key)
+	if err != nil || !found {
 		return Bet{}, 0, false, cause
 	}
 
-	var balance int64
-	if err := tx.QueryRow(ctx,
-		`select balance_minor from players where id = $1`, playerID,
-	).Scan(&balance); err != nil {
+	player, err := s.Player(ctx, playerID)
+	if err != nil {
 		return Bet{}, 0, false, err
 	}
-	return bet, balance, true, nil
+	return bet, player.BalanceMinor, true, nil
 }
 
 func isUniqueViolation(err error) bool {

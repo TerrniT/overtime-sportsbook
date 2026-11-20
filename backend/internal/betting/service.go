@@ -159,14 +159,9 @@ func (s *Service) Session(ctx context.Context) (store.Player, error) {
 	return s.deps.Store.Player(ctx, s.deps.PlayerID)
 }
 
-// History returns the player's bets, newest first.
+// History returns the player's bets, newest first. The store normalizes the
+// limit (default 20, maximum 50).
 func (s *Service) History(ctx context.Context, limit int) ([]store.Bet, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 50 {
-		limit = 50
-	}
 	return s.deps.Store.Bets(ctx, s.deps.PlayerID, limit)
 }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Match } from '@/api/types'
-import { formatOdds } from '@/lib/format'
+import { formatMatchLabel, formatOdds } from '@/lib/format'
 
 const props = defineProps<{
   match: Match
@@ -22,7 +22,7 @@ function sourcePrice(outcomeIndex: number, sourceId: string): string {
     </div>
 
     <table class="w-full border-collapse text-left">
-      <caption class="sr-only">Цены источников для {{ match.homeTeam }} — {{ match.awayTeam }}</caption>
+      <caption class="sr-only">Цены источников для {{ formatMatchLabel(match) }}</caption>
       <thead>
         <tr class="text-[8px] uppercase tracking-[0.14em] text-faint">
           <th scope="col" class="px-3 py-1.5 font-medium">Исход</th>

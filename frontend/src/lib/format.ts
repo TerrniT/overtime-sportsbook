@@ -74,6 +74,11 @@ export function formatOdds(priceMilli: number): string {
   return oddsFormat.format(priceMilli / 1000)
 }
 
+/** «Арсенал — Челси», matching the label the server stores on a bet. */
+export function formatMatchLabel(match: { homeTeam: string; awayTeam: string }): string {
+  return `${match.homeTeam} — ${match.awayTeam}`
+}
+
 /** Formats an already-decimal odds value, used by the animated ticker. */
 export function formatOddsValue(value: number): string {
   return oddsFormat.format(value)
@@ -87,11 +92,6 @@ export function formatMoneyValue(value: number): string {
 /** Formats a rouble value with kopecks, used by the payout ticker. */
 export function formatPayoutValue(value: number): string {
   return moneyFormat.format(value)
-}
-
-export function formatKickoff(iso: string): string {
-  const date = validDate(iso)
-  return date ? timeFormat.format(date) : '—'
 }
 
 export function formatKickoffFull(iso: string): string {

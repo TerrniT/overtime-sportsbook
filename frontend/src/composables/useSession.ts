@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { getSession } from '@/api/client'
-import { isApiError } from '@/api/http'
+import { apiErrorMessage } from '@/api/http'
 import type { Limits, Player } from '@/api/types'
 
 const player = ref<Player | null>(null)
@@ -11,11 +11,6 @@ const error = ref<string | null>(null)
 
 let pending: Promise<void> | null = null
 let pendingBalance: number | null = null
-
-function messageFor(cause: unknown): string {
-  if (isApiError(cause)) return cause.message
-  return 'Не удалось загрузить баланс'
-}
 
 async function fetchSession(): Promise<void> {
   if (pending) return pending
@@ -34,7 +29,7 @@ async function fetchSession(): Promise<void> {
       loaded.value = true
       pendingBalance = null
     } catch (cause) {
-      error.value = messageFor(cause)
+      error.value = apiErrorMessage(cause, 'Не удалось загрузить баланс')
     } finally {
       loading.value = false
       pending = null

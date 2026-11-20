@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useBetSlip } from '@/composables/useBetSlip'
-import { formatOdds } from '@/lib/format'
+import { formatMatchLabel, formatOdds } from '@/lib/format'
 import BetSlip from './BetSlip.vue'
 
 const { active, conflict } = useBetSlip()
@@ -45,7 +45,7 @@ onBeforeUnmount(() => {
           {{ active ? 'В купоне · 1 исход' : 'Купон пуст' }}
         </p>
         <p v-if="active" class="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {{ active.match.homeTeam }} — {{ active.match.awayTeam }} ·
+          {{ formatMatchLabel(active.match) }} ·
           <span class="text-foreground">{{ active.outcome.label }}</span>
           <span class="tabular ml-1 text-sodium">{{ formatOdds(active.priceMilli) }}</span>
         </p>

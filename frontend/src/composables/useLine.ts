@@ -2,7 +2,7 @@ import { computed, ref, watch, type WatchStopHandle } from 'vue'
 import { toast } from '@yusufceng1z/ding-vue'
 import { getLine } from '@/api/client'
 import { createLineStream, type LineStream } from '@/api/stream'
-import { isApiError } from '@/api/http'
+import { apiErrorMessage } from '@/api/http'
 import type { LineSnapshot } from '@/api/types'
 import { useSession } from './useSession'
 
@@ -42,11 +42,6 @@ function applySnapshot(next: LineSnapshot): void {
   }
 }
 
-function messageFor(cause: unknown): string {
-  if (isApiError(cause)) return cause.message
-  return 'Не удалось загрузить линию'
-}
-
 async function fetchLine(silent = false): Promise<void> {
   if (!silent && !snapshot.value) loading.value = true
   try {
@@ -54,7 +49,7 @@ async function fetchLine(silent = false): Promise<void> {
     applySnapshot(data)
   } catch (cause) {
     if (!snapshot.value) {
-      loadError.value = messageFor(cause)
+      loadError.value = apiErrorMessage(cause, 'Не удалось загрузить линию')
       phase.value = 'offline'
     }
   } finally {

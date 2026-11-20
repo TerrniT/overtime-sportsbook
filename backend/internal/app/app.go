@@ -87,20 +87,14 @@ func (s *server) line(c *fiber.Ctx) error {
 }
 
 func (s *server) bets(c *fiber.Ctx) error {
-	limit := 20
+	// Zero means "use the store's default"; the store also caps the maximum.
+	limit := 0
 	if raw := c.Query("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil {
 			return apiError(c, fiber.StatusUnprocessableEntity, "validation_error", "limit должен быть числом", nil)
 		}
-		if n <= 0 {
-			limit = 20
-		} else {
-			limit = n
-		}
-	}
-	if limit > 50 {
-		limit = 50
+		limit = n
 	}
 
 	bets, err := s.deps.Service.History(c.UserContext(), limit)

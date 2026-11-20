@@ -39,6 +39,11 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError
 }
 
+/** The server message when there is one, otherwise the caller's load-specific fallback. */
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  return isApiError(error) ? error.message : fallback
+}
+
 /** Network and timeout failures are safe to retry with the same idempotency key. */
 export function isRetryableTransportError(error: unknown): boolean {
   return isApiError(error) && (error.code === 'network' || error.code === 'timeout')

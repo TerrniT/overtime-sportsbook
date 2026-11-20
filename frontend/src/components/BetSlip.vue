@@ -9,7 +9,7 @@ import ShineBorder from '@/components/magic/ShineBorder.vue'
 import { useBetSlip } from '@/composables/useBetSlip'
 import { useLine } from '@/composables/useLine'
 import { useSession } from '@/composables/useSession'
-import { formatKickoff, formatOdds } from '@/lib/format'
+import { formatMatchLabel, formatOdds, formatTime } from '@/lib/format'
 import EmptyState from './EmptyState.vue'
 import PotentialPayout from './PotentialPayout.vue'
 import StakeInput from './StakeInput.vue'
@@ -84,12 +84,12 @@ const errorIsFunds = computed(() => submitError.value?.kind === 'insufficient_fu
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-[9px] uppercase tracking-[0.14em] text-faint">
-              {{ active.match.league }} · {{ formatKickoff(active.match.startsAt) }}
+              {{ active.match.league }} · {{ formatTime(active.match.startsAt) }}
             </p>
             <h3
               class="mt-1 text-balance break-words font-display text-[17px] font-medium uppercase leading-[1.2] tracking-[0.02em] text-foreground"
             >
-              {{ active.match.homeTeam }} — {{ active.match.awayTeam }}
+              {{ formatMatchLabel(active.match) }}
             </h3>
           </div>
           <Button

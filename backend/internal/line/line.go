@@ -251,13 +251,10 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 				probs[oi] = p
 				total += p
 			}
-			prices := make([]int64, len(outcomeKeys))
-			for oi := range outcomeKeys {
-				fair := probs[oi] / total
-				adjusted := fair * (1 + float64(sources[si].overroundBps)/10_000)
-				prices[oi] = priceFromAdjustedProbability(adjusted)
+			for oi := range probs {
+				probs[oi] /= total
 			}
-			sourcePrices[si] = prices
+			sourcePrices[si] = WithMargin(probs, sources[si].overroundBps)
 		}
 
 		fair := make([][]float64, len(sources))

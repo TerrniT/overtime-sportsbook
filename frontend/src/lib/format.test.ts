@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatKickoffDay,
+  formatMatchLabel,
   formatMoney,
   formatOdds,
   formatStakeInput,
@@ -21,6 +22,10 @@ describe('money and odds formatting', () => {
     expect(formatOdds(1950)).toBe('1,95')
     expect(formatOdds(1050)).toBe('1,05')
     expect(formatOdds(20000)).toBe('20,00')
+  })
+
+  it('builds the match label with the same separator as the server', () => {
+    expect(formatMatchLabel({ homeTeam: 'Арсенал', awayTeam: 'Челси' })).toBe('Арсенал — Челси')
   })
 
   it('parses rouble input into exact kopecks without float money', () => {
