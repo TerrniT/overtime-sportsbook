@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Runs before `git push`: backend tests against Postgres and frontend tests.
+# Enable once per clone with `make hooks`.
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+# A branch deletion has an all-zero local SHA; there is nothing to test.
+has_update=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "${local_sha}" != "0000000000000000000000000000000000000000" ]; then
+    has_update=1
+  fi
+done
+if [ "$has_update" -eq 0 ]; then
+  exit 0
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "pre-push: go is not on PATH" >&2
+  exit 1
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  # Git hooks inherit a non-interactive shell; help nvm users along.
+  if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+  fi
+fi
+if ! command -v npm >/dev/null 2>&1; then
+  echo "pre-push: npm is not on PATH (activate Node/nvm first)" >&2
+  exit 1
+fi
+
+if [ -n "${TEST_DATABASE_URL:-}" ]; then
+  db_url="$TEST_DATABASE_URL"
+else
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "pre-push: docker is not installed and TEST_DATABASE_URL is not set" >&2
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "pre-push: the Docker daemon is not running" >&2
+    exit 1
+  fi
+
+  echo "pre-push: starting Postgres"
+  docker compose up -d db >/dev/null
+
+  ready=0
+  for _ in $(seq 1 30); do
+    if docker compose exec -T db pg_isready -U sportsbook -d sportsbook >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$ready" -ne 1 ]; then
+    echo "pre-push: Postgres did not become ready within 30s" >&2
+    exit 1
+  fi
+
+  db_url="postgres://sportsbook:sportsbook@127.0.0.1:5437/sportsbook?sslmode=disable"
+fi
+
+echo "pre-push: backend tests"
+(cd "$root/backend" && TEST_DATABASE_URL="$db_url" go test ./... -count=1)
+
+echo "pre-push: frontend tests"
+(cd "$root/frontend" && npm run test)
+
+echo "pre-push: ok"

@@ -76,6 +76,10 @@ export function idempotencyKeyAfter(failure: AttemptFailure, current: string | n
   return null
 }
 
+function randomHexPart(): string {
+  return Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0')
+}
+
 export function createIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
@@ -89,6 +93,5 @@ export function createIdempotencyKey(): string {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
   }
 
-  const random = () => Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0')
-  return `${random()}-${random().slice(0, 4)}-4${random().slice(0, 3)}-a${random().slice(0, 3)}-${random()}${random().slice(0, 4)}`
+  return `${randomHexPart()}-${randomHexPart().slice(0, 4)}-4${randomHexPart().slice(0, 3)}-a${randomHexPart().slice(0, 3)}-${randomHexPart()}${randomHexPart().slice(0, 4)}`
 }

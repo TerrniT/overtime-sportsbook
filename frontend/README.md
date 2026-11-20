@@ -6,6 +6,7 @@ Vue 3 + TypeScript + Vite + Tailwind CSS v4 + shadcn-vue. The dev server proxies
 ```bash
 npm ci
 npm run dev        # http://127.0.0.1:5173
+npm run lint       # oxlint
 npm run typecheck
 npm run test
 npm run build

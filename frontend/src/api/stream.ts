@@ -27,13 +27,13 @@ function parseEvent<T>(event: MessageEvent<string>): T | null {
 export function createLineStream(handlers: LineStreamHandlers): LineStream {
   const source = new EventSource('/api/stream')
 
-  source.onopen = () => {
+  source.addEventListener('open', () => {
     handlers.onOpen?.()
-  }
+  })
 
-  source.onerror = () => {
+  source.addEventListener('error', () => {
     handlers.onError?.()
-  }
+  })
 
   source.addEventListener('snapshot', (event) => {
     const snapshot = parseEvent<LineSnapshot>(event as MessageEvent<string>)

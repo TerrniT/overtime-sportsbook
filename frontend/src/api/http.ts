@@ -108,7 +108,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: controller.signal,
     })
-  } catch (error) {
+  } catch {
     if (controller.signal.aborted) {
       throw new ApiError('timeout', FALLBACK_MESSAGE.timeout)
     }

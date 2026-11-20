@@ -29,6 +29,9 @@ cd backend && DATABASE_URL='postgres://sportsbook:sportsbook@127.0.0.1:5437/spor
 cd frontend && npm ci && npm run dev   # Vite проксирует /api на :8080
 ```
 
+После клонирования включите pre-push хук: `make hooks`. Он прогоняет backend-тесты с Postgres и
+frontend-тесты перед каждым `git push`; удаление ветки хук пропускает.
+
 ## Как устроена линия
 
 Два независимых источника цен (`PulseBet` и `SharpLine`) симулируются как случайное блуждание
@@ -116,7 +119,8 @@ DESIGN.md                # дизайн-система (impeccable document)
 ```bash
 make test       # быстрые unit-тесты (без БД)
 make test-db    # unit + интеграционные тесты против Postgres
-make lint       # go vet + vue-tsc
+make lint       # go vet + oxlint + vue-tsc
+make hooks      # включить pre-push хук для этого клона
 make web-check  # production-сборка фронтенда
 ```
 
@@ -126,8 +130,11 @@ make web-check  # production-сборка фронтенда
   параллельных ставок без отрицательного баланса, `CHECK`-констрейнт. Прогнаны `-race`, `-count=3`.
 - **Интеграционные тесты изолированы по схеме Postgres** (`testsupport`), не трогают public и
   корректно скипаются без `TEST_DATABASE_URL`.
-- **Frontend:** `vue-tsc --noEmit`, production build, 12 Vitest-тестов на форматирование денег и
-  коэффициентов, валидацию ставки, floor выплаты и жизненный цикл idempotency key.
+- **Frontend:** oxlint (`.oxlintrc.json`, TypeScript + Vue + Vitest плагины), `vue-tsc --noEmit`,
+  production build, 12 Vitest-тестов на форматирование денег и коэффициентов, валидацию ставки,
+  floor выплаты и жизненный цикл idempotency key.
+- **Pre-push:** `.githooks/pre-push` (включается `make hooks`) поднимает Postgres через compose,
+  прогоняет `go test ./...` с `TEST_DATABASE_URL` и `npm run test`; при падении push блокируется.
 - **UI:** Playwright-прогон на 1440/1280/1024/768/390/360/320 (нет горизонтального скролла),
   сценарии: загрузка, скелетоны, 409-диалог, успешная ставка, история, обрыв SSE и восстановление.
   `npx impeccable detect frontend/src` — без замечаний.
