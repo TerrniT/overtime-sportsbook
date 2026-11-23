@@ -70,6 +70,9 @@ func Blend(sources [][]float64, weights []float64) []float64 {
 
 // WithMargin applies marginBps to fair probabilities and returns decimal
 // prices in milli-odds floored to two decimals and clamped to the valid range.
+// A zero price means the outcome is unpriceable: at the 1.05 floor its fair
+// probability would already be above 1/1.05, so the price would give the
+// player positive expected value. The engine must close the whole market.
 func WithMargin(fair []float64, marginBps int) []int64 {
 	if len(fair) == 0 {
 		return []int64{}
@@ -77,7 +80,7 @@ func WithMargin(fair []float64, marginBps int) []int64 {
 	prices := make([]int64, len(fair))
 	for i, prob := range fair {
 		adjusted := prob * (1 + float64(marginBps)/10_000)
-		prices[i] = priceFromAdjustedProbability(adjusted)
+		prices[i] = priceFromAdjustedProbability(adjusted, prob)
 	}
 	return prices
 }
@@ -85,7 +88,16 @@ func WithMargin(fair []float64, marginBps int) []int64 {
 // priceFromAdjustedProbability turns an adjusted (post-margin) probability
 // into a displayable price: 1000/adj, floored to a multiple of 10, clamped to
 // [1050, 20000]. Invalid probabilities degrade to the longest valid price.
-func priceFromAdjustedProbability(adjusted float64) int64 {
+//
+// The minimum price is a hard floor. If the fair probability is above 1/1.05
+// (95.238%), that floor is already above fair value: the player would get
+// 1.05 for an outcome that should be priced at <= 1.00. Offering it would make
+// the house's expected return negative, so return 0 and let the engine close
+// the market instead of silently improving the player's price.
+func priceFromAdjustedProbability(adjusted, fair float64) int64 {
+	if fair > 1000/float64(minPriceMilli) {
+		return 0
+	}
 	if adjusted <= 0 || math.IsNaN(adjusted) {
 		return maxPriceMilli
 	}

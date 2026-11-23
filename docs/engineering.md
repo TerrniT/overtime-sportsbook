@@ -43,13 +43,20 @@ For each match and outcome:
 3. Blend the two source vectors with weights `0.6` (sharp) and `0.4` (pulse). Weights sum to 1.
 4. Apply the house margin: `adj_i = p_i * (1 + margin)`, with `margin = 0.05` (500 bps).
    `Σ adj_i = 1.05` exactly before rounding.
-5. Convert back: `price_i = 1 / adj_i`, floor to two decimals (`priceMilli = floor(1000 / adj_i / 10) * 10`),
+5. Convert back: `price_i = 1 / adj_i`, floor to two decimals (`priceMilli = floor(1000 / adj_i / 10) * 10)`,
    then clamp to `[1050, 20000]`.
 
-Flooring prices never reduces the achieved margin: a smaller price means a larger implied
-probability, so the implied total stays at or above `1 + margin`. The achieved margin is
-`Σ (1000/priceMilli) - 1` and is exposed as `marginBps` per snapshot (the target is `500`); the
-customer UI intentionally does not surface it.
+The minimum price is a hard floor, and it has a consequence that must not be hidden: if the fair
+probability is above `1 / 1.05 ≈ 95.238%`, the floor is already **above fair value**. A 97% outcome
+at 1.05 gives the player an expected return of `0.97 × 1.05 = 1.0185` per 1 staked: the house loses
+1.85% instead of earning 5%. `WithMargin` therefore returns `0` for that leg and the engine omits
+the whole match (the market is closed). It never silently raises a sub-1.00 theoretical price to
+1.05.
+
+Flooring prices normally raises the achieved margin. For probabilities between roughly 90.7% and
+95.238% the 1.05 floor can produce a margin below the 5% target, but still non-negative; such a
+market remains open. `marginBps` is the actual average achieved margin over the priceable markets
+(not forced to the target); the customer UI intentionally does not surface it.
 
 The intra-source price is generated from a mean-reverting fair probability per outcome with small
 per-source noise, so the consensus drifts by a few hundredths between ticks without jumping
@@ -282,7 +289,7 @@ type Match struct { ID, Sport, League, HomeTeam, AwayTeam string; StartsAt time.
 type Snapshot struct { Seq int64; UpdatedAt time.Time; MarginBps int; Matches []Match }
 
 func Devig(pricesMilli []int64) []float64                       // normalized, sums to 1
-func WithMargin(fair []float64, marginBps int) []int64          // prices, floored to 10, clamped
+func WithMargin(fair []float64, marginBps int) []int64          // 0 = unpriceable, engine closes market; prices floored/clamped
 func Blend(sources [][]float64, weights []float64) []float64    // weighted mean, normalized
 
 type Config struct { Seed int64; MarginBps int; Tick time.Duration; Now func() time.Time }

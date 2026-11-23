@@ -225,7 +225,14 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 	snap := Snapshot{
 		Seq:       seq,
 		UpdatedAt: now,
-		Matches:   make([]Match, len(fixtures)),
+		Matches:   make([]Match, 0, len(fixtures)),
+	}
+
+	// Compare trends by fixture ID, not by slice index: a closed market is
+	// omitted from the snapshot, so indexes can shift between ticks.
+	previous := make(map[string]int, len(e.snapshot.Matches))
+	for i, match := range e.snapshot.Matches {
+		previous[match.ID] = i
 	}
 
 	var impliedTotal float64
@@ -243,6 +250,7 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 		// Each source quotes the same base event with its own drift and its
 		// own overround, so deleting the vig is the only way to compare them.
 		sourcePrices := make([][]int64, len(sources))
+		unpriceable := false
 		for si := range sources {
 			probs := make([]float64, len(outcomeKeys))
 			var total float64
@@ -255,6 +263,13 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 				probs[oi] /= total
 			}
 			sourcePrices[si] = WithMargin(probs, sources[si].overroundBps)
+			if hasUnpriceablePrice(sourcePrices[si]) {
+				unpriceable = true
+				break
+			}
+		}
+		if unpriceable {
+			continue
 		}
 
 		fair := make([][]float64, len(sources))
@@ -262,6 +277,11 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 			fair[si] = Devig(sourcePrices[si])
 		}
 		ourPrices := WithMargin(Blend(fair, blendWeights), e.cfg.MarginBps)
+		if hasUnpriceablePrice(ourPrices) {
+			// A 1.05 floor would be above fair value; close the whole 1X2
+			// market instead of showing an incomplete or negative-edge book.
+			continue
+		}
 
 		var matchImplied float64
 		for oi, key := range outcomeKeys {
@@ -269,13 +289,15 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 			matchImplied += 1000 / float64(price)
 
 			trend := "flat"
-			if seq > 0 && mi < len(e.snapshot.Matches) && oi < len(e.snapshot.Matches[mi].Outcomes) {
-				previous := e.snapshot.Matches[mi].Outcomes[oi].PriceMilli
-				switch {
-				case price > previous:
-					trend = "up"
-				case price < previous:
-					trend = "down"
+			if seq > 0 {
+				if pi, ok := previous[f.id]; ok && oi < len(e.snapshot.Matches[pi].Outcomes) {
+					previousPrice := e.snapshot.Matches[pi].Outcomes[oi].PriceMilli
+					switch {
+					case price > previousPrice:
+						trend = "up"
+					case price < previousPrice:
+						trend = "down"
+					}
 				}
 			}
 
@@ -296,19 +318,30 @@ func (e *Engine) render(seq int64, now time.Time) Snapshot {
 				Sources:    quotes,
 			}
 		}
-		snap.Matches[mi] = match
+		snap.Matches = append(snap.Matches, match)
 		impliedTotal += matchImplied
 	}
 
-	// marginBps is the average achieved margin across markets, measured on the
-	// final rounded prices rather than the pre-rounding target. Flooring
-	// prices can only raise it; clamping a heavy favourite is the one case
-	// that could lower it, hence the floor at the configured target.
-	snap.MarginBps = int(math.Round((impliedTotal/float64(len(fixtures)) - 1) * 10_000))
-	if snap.MarginBps < e.cfg.MarginBps {
+	// marginBps is the actual average achieved margin over the markets that
+	// were priceable. Prices above the 1.05 floor can still produce a margin
+	// below the target (e.g. a 92% favourite), so this is measured, not forced.
+	if len(snap.Matches) == 0 {
 		snap.MarginBps = e.cfg.MarginBps
+	} else {
+		snap.MarginBps = int(math.Round((impliedTotal/float64(len(snap.Matches)) - 1) * 10_000))
 	}
 	return snap
+}
+
+// hasUnpriceablePrice reports whether a market contains a leg that cannot be
+// offered at the minimum price without giving the player a positive edge.
+func hasUnpriceablePrice(prices []int64) bool {
+	for _, price := range prices {
+		if price <= 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) broadcast(snap Snapshot) {

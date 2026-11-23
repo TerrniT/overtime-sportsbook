@@ -162,18 +162,31 @@ func TestWithMarginEmpty(t *testing.T) {
 	}
 }
 
-func TestWithMarginClampsHeavyFavourite(t *testing.T) {
-	// 0.999 * 1.05 -> price ~0.953, which would floor to 950. The valid
-	// minimum is 1050 and it must not become 0 or a negative value.
-	got := line.WithMargin([]float64{0.999, 0.0005, 0.0005}, 500)
+func TestWithMarginRejectsUnpriceableFavourite(t *testing.T) {
+	// 0.97 * 1.05 = 1.0185. At the 1.05 floor the player would get 1.05 for a
+	// 97% outcome: expected return 1.0185 per 1 staked. The leg must be marked
+	// unpriceable (0) so the engine can close the market.
+	got := line.WithMargin([]float64{0.97, 0.015, 0.015}, 500)
+	if len(got) != 3 {
+		t.Fatalf("WithMargin returned %d prices, want 3", len(got))
+	}
+	if got[0] != 0 {
+		t.Fatalf("unpriceable favourite price = %d, want 0 (market closed sentinel)", got[0])
+	}
+	if got[1] != 20_000 || got[2] != 20_000 {
+		t.Fatalf("longshot prices = [%d %d], want clamped 20000", got[1], got[2])
+	}
+}
+
+func TestWithMarginKeepsPriceableFavourite(t *testing.T) {
+	// 0.95 * 1.05 = 0.9975. At 1.05 the house is still (barely) positive, so
+	// the market stays; this pins the 95.238% boundary.
+	got := line.WithMargin([]float64{0.95, 0.025, 0.025}, 500)
 	if len(got) != 3 {
 		t.Fatalf("WithMargin returned %d prices, want 3", len(got))
 	}
 	if got[0] != 1050 {
-		t.Fatalf("heavy favourite price = %d, want clamped 1050", got[0])
-	}
-	for _, price := range got {
-		assertValidPrice(t, price, "clamped price")
+		t.Fatalf("priceable favourite price = %d, want 1050", got[0])
 	}
 }
 
